@@ -1,0 +1,11 @@
+spring:
+  redisson:
+    #连接超时时间
+    connectTimeout: 3000
+    connectionMinimumIdleSize: 8
+    connectionPoolSize: 32
+    idleConnectionTimeout: 30000
+    password:
+    lockRedisUrls: 127.0.0.1:6379
+    database: 0
+    standAlone: true

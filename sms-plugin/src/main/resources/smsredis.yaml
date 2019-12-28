@@ -1,0 +1,57 @@
+sms:
+  send:
+    strategy: ALI
+  ali:
+    defaultConnectTimeout: 10000
+    defaultReadTimeout: 10000
+    product: Dysmsapi
+    domain: dysmsapi.aliyuncs.com
+  checkcode:
+    prefix: hmall
+    expireTime: 120
+
+  # 是否进行信息的缓存
+  isStore: false
+spring:
+  cacheRedis:
+    database: 0
+    # 数据库索引
+    host: localhost
+    port: 6379
+    password:
+    jedis:
+      pool:
+        minIdle: 8
+        maxIdle: 32
+        maxTotal: 32
+        maxWaitMillis: 30000
+    #连接超时时间
+    timeout: 10000
+  recordRedis:
+    database: 1
+    # 数据库索引
+    host: localhost
+    port: 6379
+    password:
+    jedis:
+      pool:
+        minIdle: 8
+        maxIdle: 32
+        maxTotal: 32
+        maxWaitMillis: 30000
+    #连接超时时间
+    timeout: 10000
+  queueRedis:
+    database: 2
+    # 数据库索引
+    host: localhost
+    port: 6379
+    password:
+    jedis:
+      pool:
+        minIdle: 8
+        maxIdle: 32
+        maxTotal: 32
+        maxWaitMillis: 30000
+    #连接超时时间
+    timeout: 10000

@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=com.common.plugin.sms.config.CustomerEnvironmentPostProcessor
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.common.plugin.sms.config.CustomerSmsAutoConfig

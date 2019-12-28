@@ -1,0 +1,3 @@
+org.springframework.boot.env.EnvironmentPostProcessor=com.common.plugin.lock.config.CustomerEnvironmentPostProcessor
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.common.plugin.lock.config.CustomerRedissonAutoConfig

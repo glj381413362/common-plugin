@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=com.common.plugin.redis.config.CustomerEnvironmentPostProcessor
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.common.plugin.redis.config.CustomerRedisAutoConfig
