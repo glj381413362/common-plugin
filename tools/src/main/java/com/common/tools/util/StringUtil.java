@@ -4,14 +4,12 @@ import com.common.tools.util.exception.CommonException;
 import com.common.tools.util.pojo.Msg;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.helpers.MessageFormatter;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +42,22 @@ public class StringUtil {
 	}
 
 	/**
+	 * 判断字符串是否相等，并且打印日志
+	 *
+	 * @param one
+	 * @param two
+	 * @param msgT
+	 * @param params
+	 * @return boolean
+	 * @author gongliangjun 2019-12-25 5:50 PM
+	 */
+	public static boolean strEquals(Object one, Object two, String msgT, Object... params) {
+		boolean res = Objects.equals(one, two);
+		log.info(strFormat(msgT, params) + " :[{}]", res);
+		return res;
+	}
+
+	/**
 	 * 判断字符串是否为空，并且打印日志
 	 *
 	 * @param str
@@ -58,6 +72,21 @@ public class StringUtil {
 	}
 
 	/**
+	 * 判断字符串是否为空，并且打印日志
+	 *
+	 * @param str
+	 * @param msgT
+	 * @param params
+	 * @return boolean
+	 * @author gongliangjun 2019-12-25 5:50 PM
+	 */
+	public static boolean strIsBlank(String str, String msgT, Object... params) {
+		boolean res = StringUtils.isBlank(str);
+		log.info(strFormat(msgT, params) + " :[{}]", res);
+		return res;
+	}
+
+	/**
 	 * 判断字符串是否不为空，并且打印日志
 	 *
 	 * @param str
@@ -68,6 +97,21 @@ public class StringUtil {
 	public static boolean strNotBlank(String str, String msg) {
 		boolean res = StringUtils.isNotBlank(str);
 		log.info(msg + " :[{}]", res);
+		return res;
+	}
+
+	/**
+	 * 判断字符串是否不为空，并且打印日志
+	 *
+	 * @param str
+	 * @param msgT
+	 * @param params
+	 * @return boolean
+	 * @author gongliangjun 2019-12-25 5:50 PM
+	 */
+	public static boolean strNotBlank(String str, String msgT, Object... params) {
+		boolean res = StringUtils.isNotBlank(str);
+		log.info(strFormat(msgT, params) + " :[{}]", res);
 		return res;
 	}
 
@@ -167,8 +211,9 @@ public class StringUtil {
 	 * @return
 	 */
 	public static String strFormat0(String message, Object... objects) {
-		return parse("${","}",message,objects);
+		return parse("${", "}", message, objects);
 	}
+
 	/**
 	 * 获取格式化后的消息,格式如:my name is {}, my age is {}
 	 *
@@ -177,13 +222,13 @@ public class StringUtil {
 	 * @return
 	 */
 	public static String strFormat(String message, Object... objects) {
-		return parse("{","}",message,objects);
+		return parse("{", "}", message, objects);
 	}
 
 
 	/**
 	 * 将字符串text中由openToken和closeToken组成的占位符依次替换为args数组中的值
-	 *
+	 * <p>
 	 * 参考：主要通过简单的改写myatis框架中的GenericTokenParser类
 	 *
 	 * @param openToken
@@ -267,7 +312,7 @@ public class StringUtil {
 		String s1 = exceptionString(aaaaaaaaa);
 
 		System.out.println(s1);
-		CommonException commonException = new CommonException(aaaaaaaaa,new Msg("id:{},error:{}"),1234,"我就是错了");
+		CommonException commonException = new CommonException(aaaaaaaaa, new Msg("id:{},error:{}"), 1234, "我就是错了");
 		String message = commonException.getMessage();
 		System.out.println(message);
 	}

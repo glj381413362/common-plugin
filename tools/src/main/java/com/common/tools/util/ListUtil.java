@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.common.tools.util.StringUtil.strFormat;
+
 /**
  * <p>
  * 集合处理工具类
@@ -41,6 +43,21 @@ public class ListUtil {
 	}
 
 	/**
+	 * 判断数组是否为空，并且打印判断结果
+	 *
+	 * @param list
+	 * @param msgT
+	 * @param params
+	 * @return boolean
+	 * @author gongliangjun 2019-12-25 5:14 PM
+	 */
+	public static boolean listIsEmpty(List list, String msgT, Object... params) {
+		boolean empty = CollectionUtils.isEmpty(list);
+		LOG.info(strFormat(msgT, params) + " :[{}]", empty);
+		return empty;
+	}
+
+	/**
 	 * 判断数组是否不为空，并且打印判断结果
 	 *
 	 * @param list
@@ -51,6 +68,21 @@ public class ListUtil {
 	public static boolean listIsNotEmpty(List list, String msg) {
 		boolean empty = CollectionUtils.isNotEmpty(list);
 		LOG.info(msg + " :[{}]", empty);
+		return empty;
+	}
+
+	/**
+	 * 判断数组是否不为空，并且打印判断结果
+	 *
+	 * @param list
+	 * @param msgT
+	 * @param params
+	 * @return boolean
+	 * @author gongliangjun 2019-12-25 5:14 PM
+	 */
+	public static boolean listIsNotEmpty(List list, String msgT, Object... params) {
+		boolean empty = CollectionUtils.isNotEmpty(list);
+		LOG.info(strFormat(msgT, params) + " :[{}]", empty);
 		return empty;
 	}
 
