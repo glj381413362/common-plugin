@@ -1,5 +1,7 @@
 package com.common.tools.util;
 
+import com.common.tools.util.exception.CommonException;
+import com.common.tools.util.pojo.Msg;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.helpers.MessageFormatter;
@@ -9,6 +11,7 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
@@ -147,7 +150,7 @@ public class StringUtil {
 			final StringWriter sw = new StringWriter();
 			final PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
-			return "exceptionString> " + sw.toString() + "\r\n";
+			return sw.toString() + "\r\n";
 		} catch (final Exception e2) {
 			final String errorMsg = "Common exception util error occured :" + e2.getMessage();
 			log.error(errorMsg, e);
@@ -155,6 +158,17 @@ public class StringUtil {
 		}
 	}
 
+
+	/**
+	 * 获取格式化后的消息,格式如:my name is ${}, my age is ${}
+	 *
+	 * @param message
+	 * @param objects
+	 * @return
+	 */
+	public static String strFormat0(String message, Object... objects) {
+		return parse("${","}",message,objects);
+	}
 	/**
 	 * 获取格式化后的消息,格式如:my name is {}, my age is {}
 	 *
@@ -162,10 +176,99 @@ public class StringUtil {
 	 * @param objects
 	 * @return
 	 */
-	public static String getMessageFormat(String message, Object... objects) {
-		if (message == null) {
-			return message;
+	public static String strFormat(String message, Object... objects) {
+		return parse("{","}",message,objects);
+	}
+
+
+	/**
+	 * 将字符串text中由openToken和closeToken组成的占位符依次替换为args数组中的值
+	 *
+	 * 参考：主要通过简单的改写myatis框架中的GenericTokenParser类
+	 *
+	 * @param openToken
+	 * @param closeToken
+	 * @param text
+	 * @param args
+	 * @return
+	 */
+	public static String parse(String openToken, String closeToken, String text, Object... args) {
+		if (args == null || args.length <= 0) {
+			return text;
 		}
-		return MessageFormatter.arrayFormat(message, objects).getMessage();
+		int argsIndex = 0;
+
+		if (text == null || text.isEmpty()) {
+			return "";
+		}
+		char[] src = text.toCharArray();
+		int offset = 0;
+		// search open token
+		int start = text.indexOf(openToken, offset);
+		if (start == -1) {
+			return text;
+		}
+		final StringBuilder builder = new StringBuilder();
+		StringBuilder expression = null;
+		while (start > -1) {
+			if (start > 0 && src[start - 1] == '\\') {
+				// this open token is escaped. remove the backslash and continue.
+				builder.append(src, offset, start - offset - 1).append(openToken);
+				offset = start + openToken.length();
+			} else {
+				// found open token. let's search close token.
+				if (expression == null) {
+					expression = new StringBuilder();
+				} else {
+					expression.setLength(0);
+				}
+				builder.append(src, offset, start - offset);
+				offset = start + openToken.length();
+				int end = text.indexOf(closeToken, offset);
+				while (end > -1) {
+					if (end > offset && src[end - 1] == '\\') {
+						// this close token is escaped. remove the backslash and continue.
+						expression.append(src, offset, end - offset - 1).append(closeToken);
+						offset = end + closeToken.length();
+						end = text.indexOf(closeToken, offset);
+					} else {
+						expression.append(src, offset, end - offset);
+						offset = end + closeToken.length();
+						break;
+					}
+				}
+				if (end == -1) {
+					// close token was not found.
+					builder.append(src, start, src.length - start);
+					offset = src.length;
+				} else {
+					///////////////////////////////////////仅仅修改了该else分支下的个别行代码////////////////////////
+
+					String value = (argsIndex <= args.length - 1) ?
+							(args[argsIndex] == null ? "" : args[argsIndex].toString()) : expression.toString();
+					builder.append(value);
+					offset = end + closeToken.length();
+					argsIndex++;
+					////////////////////////////////////////////////////////////////////////////////////////////////
+				}
+			}
+			start = text.indexOf(openToken, offset);
+		}
+		if (offset < src.length) {
+			builder.append(src, offset, src.length - offset);
+		}
+		return builder.toString();
+	}
+
+
+	public static void main(String[] args) {
+		NullPointerException aaaaaaaaa = new NullPointerException("test");
+
+		String s1 = exceptionString(aaaaaaaaa);
+
+		System.out.println(s1);
+		CommonException commonException = new CommonException(aaaaaaaaa,new Msg("id:{},error:{}"),1234,"我就是错了");
+		String message = commonException.getMessage();
+		System.out.println(message);
 	}
 }

@@ -5,7 +5,7 @@
 
 package com.common.tools.util.exception;
 
-import org.slf4j.helpers.FormattingTuple;
+import com.common.tools.util.pojo.Msg;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -16,6 +16,24 @@ import java.util.Map;
 public class CommonException extends RuntimeException {
 	private final transient Object[] parameters;
 	private String code;
+
+	/**
+	 * new CommonException(new Msg("id:{},error:{}"),id,error)
+	 */
+	public CommonException(Msg msg, Object... params) {
+		super(msg.getMsg(params));
+		this.parameters = new Object[0];
+		this.code = msg.getMsg(params);
+	}
+
+	/**
+	 * new CommonException(cause,new Msg("id:{},error:{}"),id,error)
+	 */
+	public CommonException(Throwable cause, Msg msg, Object... params) {
+		super(msg.getMsg(params), cause);
+		this.parameters = new Object[0];
+		this.code = msg.getMsg(params);
+	}
 
 	public CommonException(String code, Object... parameters) {
 		super(code);
@@ -35,20 +53,6 @@ public class CommonException extends RuntimeException {
 		this.parameters = new Object[0];
 	}
 
-	/**
-	 * new CommonException(MessageFormatter.arrayFormat("id {} 和 name {} 处理错误", id,name),e)
-	 *
-	 * @param formattingTuple
-	 * @param cause
-	 * @return
-	 * @author gongliangjun 2019-12-28 8:22 PM
-	 */
-	public CommonException(FormattingTuple formattingTuple, Throwable cause) {
-
-		super(formattingTuple.getMessage(), cause);
-		this.code = code;
-		this.parameters = new Object[0];
-	}
 
 	public CommonException(Throwable cause, Object... parameters) {
 		super(cause);
