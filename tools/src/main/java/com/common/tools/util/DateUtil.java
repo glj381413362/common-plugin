@@ -354,7 +354,7 @@ public final class DateUtil {
 	 * @author gongliangjun 2020-01-02 9:48 AM
 	 * @return java.time.LocalDate
 	 */
-	public LocalDate convertToLocalDate(Date dateToConvert) {
+	public static LocalDate convertToLocalDate(Date dateToConvert) {
 		return dateToConvert.toInstant()
 				.atZone(ZoneId.systemDefault())
 				.toLocalDate();
@@ -367,7 +367,7 @@ public final class DateUtil {
 	 * @author gongliangjun 2020-01-02 9:49 AM
 	 * @return java.time.LocalDateTime
 	 */
-	public LocalDateTime convertToLocalDateTime(Date dateToConvert) {
+	public static LocalDateTime convertToLocalDateTime(Date dateToConvert) {
 		return dateToConvert.toInstant()
 				.atZone(ZoneId.systemDefault())
 				.toLocalDateTime();
@@ -380,7 +380,7 @@ public final class DateUtil {
 	 * @author gongliangjun 2020-01-02 9:50 AM
 	 * @return java.util.Date
 	 */
-	public Date convertToDate(LocalDate dateToConvert) {
+	public static Date convertToDate(LocalDate dateToConvert) {
 		return java.util.Date.from(dateToConvert.atStartOfDay()
 				.atZone(ZoneId.systemDefault())
 				.toInstant());
@@ -393,7 +393,7 @@ public final class DateUtil {
 	 * @author gongliangjun 2020-01-02 9:50 AM
 	 * @return java.util.Date
 	 */
-	public Date convertToDate(LocalDateTime dateToConvert) {
+	public static Date convertToDate(LocalDateTime dateToConvert) {
 		return java.util.Date
 				.from(dateToConvert.atZone(ZoneId.systemDefault())
 						.toInstant());
