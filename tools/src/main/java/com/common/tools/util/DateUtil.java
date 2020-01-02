@@ -6,6 +6,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -342,6 +345,58 @@ public final class DateUtil {
 
 		todayStr = sdf.format(today);
 		return todayStr;
+	}
+
+	/**
+	 * date转LocalDate
+	 *
+	 * @param dateToConvert
+	 * @author gongliangjun 2020-01-02 9:48 AM
+	 * @return java.time.LocalDate
+	 */
+	public LocalDate convertToLocalDate(Date dateToConvert) {
+		return dateToConvert.toInstant()
+				.atZone(ZoneId.systemDefault())
+				.toLocalDate();
+	}
+
+	/**
+	 * date 转 LocalDateTime
+	 *
+	 * @param dateToConvert
+	 * @author gongliangjun 2020-01-02 9:49 AM
+	 * @return java.time.LocalDateTime
+	 */
+	public LocalDateTime convertToLocalDateTime(Date dateToConvert) {
+		return dateToConvert.toInstant()
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
+	}
+
+	/**
+	 * LocalDate 转化成 Date
+	 *
+	 * @param dateToConvert
+	 * @author gongliangjun 2020-01-02 9:50 AM
+	 * @return java.util.Date
+	 */
+	public Date convertToDate(LocalDate dateToConvert) {
+		return java.util.Date.from(dateToConvert.atStartOfDay()
+				.atZone(ZoneId.systemDefault())
+				.toInstant());
+	}
+
+	/**
+	 * LocalDateTime 转化成 Date
+	 *
+	 * @param dateToConvert
+	 * @author gongliangjun 2020-01-02 9:50 AM
+	 * @return java.util.Date
+	 */
+	public Date convertToDate(LocalDateTime dateToConvert) {
+		return java.util.Date
+				.from(dateToConvert.atZone(ZoneId.systemDefault())
+						.toInstant());
 	}
 
 	/**
