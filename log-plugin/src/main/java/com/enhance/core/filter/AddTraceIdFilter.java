@@ -7,6 +7,7 @@ import org.slf4j.MDC;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -20,9 +21,12 @@ import java.util.UUID;
 public class AddTraceIdFilter implements Filter {
 
 
-	/** logger */
+	/**
+	 * logger
+	 */
 	private static final Logger log = LoggerFactory.getLogger(AddTraceIdFilter.class);
-	private final static String TRACEID  = "X-B3-TraceId";
+	private final static String TRACEID = "X-B3-TraceId";
+
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 
@@ -31,13 +35,18 @@ public class AddTraceIdFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
 		HttpServletRequest request = (HttpServletRequest) servletRequest;
-		String traceId = request.getHeader("X-B3-TraceId");
+		HttpServletResponse resp = (HttpServletResponse) servletResponse;
+		String traceId = request.getHeader(TRACEID);
+		if (StringUtils.isEmpty(traceId)) {
+			traceId = (String) request.getAttribute(TRACEID);
+		}
 		if (StringUtils.isEmpty(traceId)) {
 			log.info("添加TraceId");
 			traceId = UUID.randomUUID().toString();
-			request.setAttribute("X-B3-TraceId", traceId);
+			request.setAttribute(TRACEID, traceId);
+			resp.addHeader(TRACEID, traceId);
 		}
-		MDC.put(TRACEID,traceId);
+		MDC.put(TRACEID, traceId);
 		filterChain.doFilter(servletRequest, servletResponse);
 	}
 
