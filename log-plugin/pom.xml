@@ -9,6 +9,9 @@
     <version>1.0-SNAPSHOT</version>
     <properties>
         <java.version>1.8</java.version>
+        <build.encoding>UTF-8</build.encoding>
+        <spring-boot.repackage.skip>false</spring-boot.repackage.skip>
+
     </properties>
 
     <distributionManagement>
@@ -107,11 +110,45 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <nonFilteredFileExtensions>
+                        <nonFilteredFileExtension>xlsx</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>xls</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>ttf</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>ttc</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                    <encoding>${build.encoding}</encoding>
+                    <resources>
+                        <!-- 打包配置文件等到jar包中 排除yml-->
+                        <resource>
+                            <directory>src/main/resources</directory>
+                            <filtering>true</filtering>
+                            <excludes>
+                                <exclude>*.yml</exclude>
+                            </excludes>
+                        </resource>
+                        <!-- 打包部署elk stack 日志框架配置文件到 elk 文件夹-->
+                        <resource>
+                            <directory>nodes-stand-alone</directory>
+                            <filtering>true</filtering>
+                            <includes>
+                                <include>*.yml</include>
+                                <include>*.sh</include>
+                            </includes>
+                            <targetPath>${project.build.directory}/elk</targetPath>
+                        </resource>
+                    </resources>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.3</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <encoding>${build.encoding}</encoding>
                 </configuration>
             </plugin>
             <plugin>
