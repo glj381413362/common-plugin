@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
  * @author gongliangjun 2019/07/01 11:18
  */
 @Configuration
-@ComponentScan({"com.enhance.aspect","com.enhance.core.service"})
+@ComponentScan({"com.enhance.aspect","com.enhance.core.service","com.enhance.config"})
 public class BeanAutoConfig {
 
 }

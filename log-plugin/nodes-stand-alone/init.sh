@@ -79,4 +79,4 @@ echo -e "${GREEN_COLOR}>>>>>>>>>>>>>>>>>> The End <<<<<<<<<<<<<<<<<<${RES}"
 
 # 部署项目
 echo -e "${BLUE_COLOR}==================> Docker deploy Start <==================${RES}"
-docker-compose up --build -d
+docker-compose -f docker-compose-elk-alone up --build -d
