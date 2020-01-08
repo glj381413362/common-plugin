@@ -32,14 +32,19 @@ public class ListUtil {
 	 * 判断数组是否为空，并且打印判断结果
 	 *
 	 * @param list
-	 * @param msg
+	 * @param msgT
+	 * @param params
 	 * @return boolean
 	 * @author gongliangjun 2019-12-25 5:14 PM
 	 */
-	public static boolean listIsEmpty(List list, String msg) {
-		boolean empty = CollectionUtils.isEmpty(list);
-		LOG.info(msg + " :[{}]", empty);
-		return empty;
+	public static boolean listIsEmpty(Logger logger, List list, String msgT, Object... params) {
+		boolean res = CollectionUtils.isEmpty(list);
+		if (null == logger) {
+			LOG.info(strFormat(msgT, params) + " :[{}]", res);
+		} else {
+			logger.info(strFormat(msgT, params) + " :[{}]", res);
+		}
+		return res;
 	}
 
 	/**
@@ -52,23 +57,26 @@ public class ListUtil {
 	 * @author gongliangjun 2019-12-25 5:14 PM
 	 */
 	public static boolean listIsEmpty(List list, String msgT, Object... params) {
-		boolean empty = CollectionUtils.isEmpty(list);
-		LOG.info(strFormat(msgT, params) + " :[{}]", empty);
-		return empty;
+		return listIsEmpty(null, list, msgT, params);
 	}
 
 	/**
 	 * 判断数组是否不为空，并且打印判断结果
 	 *
 	 * @param list
-	 * @param msg
+	 * @param msgT
+	 * @param params
 	 * @return boolean
 	 * @author gongliangjun 2019-12-25 5:14 PM
 	 */
-	public static boolean listIsNotEmpty(List list, String msg) {
-		boolean empty = CollectionUtils.isNotEmpty(list);
-		LOG.info(msg + " :[{}]", empty);
-		return empty;
+	public static boolean listIsNotEmpty(Logger logger, List list, String msgT, Object... params) {
+		boolean res = CollectionUtils.isNotEmpty(list);
+		if (null == logger) {
+			LOG.info(strFormat(msgT, params) + " :[{}]", res);
+		} else {
+			logger.info(strFormat(msgT, params) + " :[{}]", res);
+		}
+		return res;
 	}
 
 	/**
@@ -81,9 +89,7 @@ public class ListUtil {
 	 * @author gongliangjun 2019-12-25 5:14 PM
 	 */
 	public static boolean listIsNotEmpty(List list, String msgT, Object... params) {
-		boolean empty = CollectionUtils.isNotEmpty(list);
-		LOG.info(strFormat(msgT, params) + " :[{}]", empty);
-		return empty;
+		return listIsNotEmpty(null, list, msgT, params);
 	}
 
 

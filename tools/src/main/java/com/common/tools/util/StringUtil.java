@@ -4,6 +4,7 @@ import com.common.tools.util.exception.CommonException;
 import com.common.tools.util.pojo.Msg;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -31,13 +32,18 @@ public class StringUtil {
 	 *
 	 * @param one
 	 * @param two
-	 * @param msg
+	 * @param msgT
+	 * @param params
 	 * @return boolean
 	 * @author gongliangjun 2019-12-25 5:50 PM
 	 */
-	public static boolean strEquals(Object one, Object two, String msg) {
+	public static boolean strEquals(Logger logger, Object one, Object two, String msgT, Object... params) {
 		boolean res = Objects.equals(one, two);
-		log.info(msg + " :[{}]", res);
+		if (null == logger) {
+			log.info(strFormat(msgT, params) + " :[{}]", res);
+		} else {
+			logger.info(strFormat(msgT, params) + " :[{}]", res);
+		}
 		return res;
 	}
 
@@ -52,22 +58,25 @@ public class StringUtil {
 	 * @author gongliangjun 2019-12-25 5:50 PM
 	 */
 	public static boolean strEquals(Object one, Object two, String msgT, Object... params) {
-		boolean res = Objects.equals(one, two);
-		log.info(strFormat(msgT, params) + " :[{}]", res);
-		return res;
+		return strEquals(null, one, two, msgT, params);
 	}
 
 	/**
 	 * 判断字符串是否为空，并且打印日志
 	 *
+	 * @param logger
 	 * @param str
-	 * @param msg
+	 * @param msgT
 	 * @return boolean
 	 * @author gongliangjun 2019-12-25 5:50 PM
 	 */
-	public static boolean strIsBlank(String str, String msg) {
+	public static boolean strIsBlank(Logger logger, String str, String msgT, Object... params) {
 		boolean res = StringUtils.isBlank(str);
-		log.info(msg + " :[{}]", res);
+		if (null == logger) {
+			log.info(strFormat(msgT, params) + " :[{}]", res);
+		} else {
+			logger.info(strFormat(msgT, params) + " :[{}]", res);
+		}
 		return res;
 	}
 
@@ -83,20 +92,25 @@ public class StringUtil {
 	public static boolean strIsBlank(String str, String msgT, Object... params) {
 		boolean res = StringUtils.isBlank(str);
 		log.info(strFormat(msgT, params) + " :[{}]", res);
-		return res;
+		return strIsBlank(null, str, msgT,params);
 	}
 
 	/**
 	 * 判断字符串是否不为空，并且打印日志
 	 *
 	 * @param str
-	 * @param msg
+	 * @param msgT
+	 * @param params
 	 * @return boolean
 	 * @author gongliangjun 2019-12-25 5:50 PM
 	 */
-	public static boolean strNotBlank(String str, String msg) {
+	public static boolean strNotBlank(Logger logger,String str, String msgT, Object... params) {
 		boolean res = StringUtils.isNotBlank(str);
-		log.info(msg + " :[{}]", res);
+		if (null == logger) {
+			log.info(strFormat(msgT, params) + " :[{}]", res);
+		} else {
+			logger.info(strFormat(msgT, params) + " :[{}]", res);
+		}
 		return res;
 	}
 
@@ -307,6 +321,8 @@ public class StringUtil {
 
 
 	public static void main(String[] args) {
+		boolean b = strIsBlank(log,"aa", "是否为空{}",1);
+		strFormat("", "");
 		NullPointerException aaaaaaaaa = new NullPointerException("test");
 
 		String s1 = exceptionString(aaaaaaaaa);
