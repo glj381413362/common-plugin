@@ -34,6 +34,7 @@
 
         <!-- json  -->
         <fastjson.version>1.2.47</fastjson.version>
+        <jackson.version>2.10.1</jackson.version>
     </properties>
 
     <distributionManagement>
@@ -104,6 +105,21 @@
             <artifactId>fastjson</artifactId>
             <version>${fastjson.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>2.9.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
         <!-- xml -->
         <dependency>
             <groupId>dom4j</groupId>
@@ -170,6 +186,7 @@
             <artifactId>httpmime</artifactId>
             <version>4.5.2</version>
         </dependency>
+
     </dependencies>
     <build>
         <finalName>${project.artifactId}</finalName>
