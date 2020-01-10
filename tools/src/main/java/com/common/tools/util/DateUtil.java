@@ -250,6 +250,21 @@ public final class DateUtil {
 		return dateFormat.format(date);
 	}
 
+	/**
+	 * 将时间转换成对应的格式
+	 *
+	 * @param time
+	 * @param pattern
+	 * @return
+	 */
+	public static Date parse(String time, String pattern) throws ParseException {
+		//===============================================================================
+		//  校验事务时间必须带有时分秒
+		//===============================================================================
+		SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+		return simpleDateFormat.parse(time);
+	}
+
 	public static String getEmailDate(Date today) {
 		String todayStr;
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日HH:mm:ss");
@@ -351,8 +366,8 @@ public final class DateUtil {
 	 * date转LocalDate
 	 *
 	 * @param dateToConvert
-	 * @author gongliangjun 2020-01-02 9:48 AM
 	 * @return java.time.LocalDate
+	 * @author gongliangjun 2020-01-02 9:48 AM
 	 */
 	public static LocalDate convertToLocalDate(Date dateToConvert) {
 		return dateToConvert.toInstant()
@@ -364,8 +379,8 @@ public final class DateUtil {
 	 * date 转 LocalDateTime
 	 *
 	 * @param dateToConvert
-	 * @author gongliangjun 2020-01-02 9:49 AM
 	 * @return java.time.LocalDateTime
+	 * @author gongliangjun 2020-01-02 9:49 AM
 	 */
 	public static LocalDateTime convertToLocalDateTime(Date dateToConvert) {
 		return dateToConvert.toInstant()
@@ -377,8 +392,8 @@ public final class DateUtil {
 	 * LocalDate 转化成 Date
 	 *
 	 * @param dateToConvert
-	 * @author gongliangjun 2020-01-02 9:50 AM
 	 * @return java.util.Date
+	 * @author gongliangjun 2020-01-02 9:50 AM
 	 */
 	public static Date convertToDate(LocalDate dateToConvert) {
 		return java.util.Date.from(dateToConvert.atStartOfDay()
@@ -390,8 +405,8 @@ public final class DateUtil {
 	 * LocalDateTime 转化成 Date
 	 *
 	 * @param dateToConvert
-	 * @author gongliangjun 2020-01-02 9:50 AM
 	 * @return java.util.Date
+	 * @author gongliangjun 2020-01-02 9:50 AM
 	 */
 	public static Date convertToDate(LocalDateTime dateToConvert) {
 		return java.util.Date
