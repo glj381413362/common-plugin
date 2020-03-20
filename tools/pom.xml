@@ -36,7 +36,7 @@
         <fastjson.version>1.2.47</fastjson.version>
         <jackson.version>2.10.1</jackson.version>
         <poi.version>4.0.0</poi.version>
-
+        <junit.version>4.12</junit.version>
         <spring-web.version>5.0.10.RELEASE</spring-web.version>
     </properties>
 
@@ -63,6 +63,25 @@
         </snapshotRepository>
     </distributionManagement>
     <dependencies>
+        <!--单元测试-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>5.1.8.RELEASE</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <version>2.1.6.RELEASE</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -226,6 +245,8 @@
             <artifactId>httpmime</artifactId>
             <version>4.5.2</version>
         </dependency>
+
+
 
     </dependencies>
     <build>
