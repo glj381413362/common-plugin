@@ -47,7 +47,11 @@ public class AddTraceIdFilter implements Filter {
 			resp.addHeader(TRACEID, traceId);
 		}
 		MDC.put(TRACEID, traceId);
-		filterChain.doFilter(servletRequest, servletResponse);
+		try {
+			filterChain.doFilter(servletRequest, servletResponse);
+		} finally {
+			MDC.remove(TRACEID);
+		}
 	}
 
 	@Override

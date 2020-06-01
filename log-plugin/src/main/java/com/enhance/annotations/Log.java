@@ -18,7 +18,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  */
 @Retention(RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Log {
+public @interface Log  {
 	// 操作类型
 	LogConst.Action action() default LogConst.Action.NULL;
 
@@ -29,7 +29,11 @@ public @interface Log {
 	String[] itemIds() default {};
 
 	// 对象类型
-	boolean printInfoLog() default false;
+	boolean printInfoLog() default true;
+	// 开启方法调用耗时统计
+	boolean enableProfiler() default true;
+	//分线器名称，不传默认为方法名称
+	String profilerName() default "";
 
 
 	// 如果是数组 是否打印出参大小，不打印对象值
