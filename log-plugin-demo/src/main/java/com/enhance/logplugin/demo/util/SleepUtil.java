@@ -22,5 +22,12 @@ public class SleepUtil {
       log.catching(e);
     }
   }
+  public static void threadSleep(int first) {
+    try {
+      Thread.sleep(first * 1000);
+    } catch (InterruptedException e) {
+      log.catching(e);
+    }
+  }
 
 }

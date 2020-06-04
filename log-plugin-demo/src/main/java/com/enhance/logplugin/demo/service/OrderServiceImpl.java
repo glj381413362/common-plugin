@@ -1,10 +1,14 @@
 package com.enhance.logplugin.demo.service;
 
+import com.common.tools.util.AopProxy;
 import com.common.tools.util.BeanUtil;
 import com.common.tools.util.ListUtil;
 import com.common.tools.util.exception.CommonException;
 import com.common.tools.util.pojo.Msg;
+import com.enhance.annotations.EnableProfiler;
 import com.enhance.annotations.Log;
+import com.enhance.annotations.LogProfiler;
+import com.enhance.aspect.LogThreadContext;
 import com.enhance.logplugin.demo.controller.dto.OrderDetailDTO;
 import com.enhance.logplugin.demo.controller.dto.OrderDetailDTO.OrderEntryDetail;
 import com.enhance.logplugin.demo.controller.dto.OrderDetailDTO.UserDTO;
@@ -16,6 +20,8 @@ import com.enhance.logplugin.demo.entity.Order;
 import com.enhance.logplugin.demo.entity.OrderEntry;
 import com.enhance.logplugin.demo.entity.Sku;
 import com.enhance.logplugin.demo.entity.User;
+import com.enhance.logplugin.demo.util.SleepUtil;
+import com.enhance.util.LogUtil;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +31,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.XSlf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
-import org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,7 +43,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @XSlf4j
-public class OrderServiceImpl {
+public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
 
   private final UserMapper userMapper;
   private final OrderMapper orderMapper;
@@ -53,6 +57,9 @@ public class OrderServiceImpl {
    * @return java.util.List<com.enhance.logplugin.demo.entity.Order>
    * @author gongliangjun 2020-06-02 4:09 PM
    */
+  @EnableProfiler()
+  @LogProfiler
+  @Override
   public List<Order> listOrder(Order order) {
     List<Order> orders = orderMapper.findAll(Example.of(order));
     return orders;
@@ -65,43 +72,55 @@ public class OrderServiceImpl {
    * @return com.enhance.logplugin.demo.controller.dto.OrderDetailDTO
    * @author gongliangjun 2020-06-02 4:10 PM
    */
+  @LogProfiler
+  @Override
   public OrderDetailDTO queryOrderDetail(String orderCode) {
-    Order order1 = new Order() ;
+    SleepUtil.threadSleep(2);
+    Order order1 = new Order();
     order1.setOrderCode(orderCode);
+    LogThreadContext ltc = LogUtil.startProfiler("findOne");
     Optional<Order> orderOptional = orderMapper.findOne(Example.of(order1));
+    ltc.stopInstantProfiler();
+    SleepUtil.threadSleep(2);
     OrderDetailDTO detailDTO = new OrderDetailDTO();
     if (orderOptional.isPresent()) {
       Order order = orderOptional.get();
       //===============================================================================
       //  组装订单dto
       //===============================================================================
-      conversionOrder(order, detailDTO);
+      self().conversionOrder(order, detailDTO);
       //===============================================================================
       //  组装订单行dto
       //===============================================================================
       try {
-        conversionOrderEntry(order, detailDTO);
+        ltc = LogUtil.startProfiler("conversionOrderEntry");
+        self().conversionOrderEntry(order, detailDTO);
+        ltc.stopInstantProfiler();
+        SleepUtil.threadSleep(2);
       } catch (Exception e) {
         log.throwing(e);
       }
       //===============================================================================
       //  组装用户
       //===============================================================================
-      conversionUser(order.getUserId(),detailDTO);
-
+      ltc = LogUtil.startProfiler("conversionUser");
+      conversionUser(order.getUserId(), detailDTO);
+      ltc.stopInstantProfiler();
+      SleepUtil.threadSleep(2);
     }
     return detailDTO;
   }
 
-  private void conversionUser(Long userId, OrderDetailDTO detailDTO) {
+  public void conversionUser(Long userId, OrderDetailDTO detailDTO) {
     Optional<User> byId = userMapper.findById(userId);
     byId.ifPresent(user -> {
       UserDTO userDTO = new UserDTO();
       detailDTO.setUser(userDTO);
-      BeanUtil.copySourceToTarget(user,userDTO);
+      BeanUtil.copySourceToTarget(user, userDTO);
     });
   }
 
+  @Override
   @Transactional
   @Log(itemIds = {"orderDetailDTO.orderCode", "orderDetailDTO.user.userCode"})
   public Order update(OrderDetailDTO orderDetailDTO) {
@@ -114,12 +133,14 @@ public class OrderServiceImpl {
       userMapper.saveAndFlush(user1);
     });
     Optional<Order> orderOptional = orderMapper.findById(orderDetailDTO.getOrderId());
-    Order order = orderOptional.orElseThrow(() -> new CommonException(new Msg("根据订单id[{}],未查询到相应订单"),orderDetailDTO.getOrderId()));
+    Order order = orderOptional.orElseThrow(
+        () -> new CommonException(new Msg("根据订单id[{}],未查询到相应订单"), orderDetailDTO.getOrderId()));
     BeanUtil.copySourceToTarget(orderDetailDTO, order);
     order = orderMapper.saveAndFlush(order);
     return order;
   }
 
+  @Override
   @Log(itemIds = {"orderEntryDetails[0].orderId"})
   public void handOrderEntry(List<OrderEntryDetail> orderEntryDetails) {
     for (OrderEntryDetail orderEntryDetail : orderEntryDetails) {
@@ -138,10 +159,40 @@ public class OrderServiceImpl {
     }
   }
 
+  @EnableProfiler
+  @Override
   public void conversionOrder(Order order, OrderDetailDTO detailDTO) {
+
+    SleepUtil.threadSleep(2);
+
+
     BeanUtil.copySourceToTarget(order, detailDTO);
+
+    self().tempA();
   }
 
+  @EnableProfiler
+  @Override
+  public void tempA() {
+    SleepUtil.threadSleep(2);
+    LogThreadContext ltc = LogUtil.startProfiler("A");
+    SleepUtil.threadSleep(2);
+    ltc.stopInstantProfiler();
+    self().tempB();
+
+  }
+
+  @EnableProfiler
+  @Override
+  public void tempB() {
+    SleepUtil.threadSleep(2);
+    LogThreadContext ltc = LogUtil.startProfiler("B");
+    SleepUtil.threadSleep(2);
+    ltc.stopInstantProfiler();
+
+  }
+
+  @Override
   public void conversionOrderEntry(Order order, OrderDetailDTO detailDTO) {
     OrderEntry query = new OrderEntry();
     query.setOrderId(order.getOrderId());
@@ -150,6 +201,47 @@ public class OrderServiceImpl {
       ArrayList<OrderEntryDetail> orderEntryArrayList = Lists
           .newArrayListWithCapacity(orderEntries.size());
       for (OrderEntry orderEntry : orderEntries) {
+        //===============================================================================
+        //  测试LogsUtil.printCode(String describe, String separator, String... values)方法
+        //===============================================================================
+        LogUtil.printCode("orderEntry skuid和数量", "-", orderEntry.getSkuId().toString(),
+            orderEntry.getQuantity().toString());
+        log.info("开始处理...");
+        log.info("处理中");
+        log.info("处理结束");
+
+        //===============================================================================
+        //  测试LogsUtil.printCode(String describe, String value)方法
+        //===============================================================================
+        LogUtil.printCode("处理的skuid", orderEntry.getSkuId().toString());
+        log.info("开始处理...");
+        log.info("处理中");
+        log.info("处理结束");
+        LogUtil.clearMDC();
+
+
+        //===============================================================================
+        //  测试LogsUtil.printCode(String value)方法
+        //===============================================================================
+        LogUtil.printCode(orderEntry.getSkuId().toString());
+        log.info("开始处理...");
+        log.info("处理中");
+        log.info("处理结束");
+        LogUtil.clearMDC();
+
+        //===============================================================================
+        //  测试LogsUtil.printCodeByTemplate(String template, Object... values)方法
+        //===============================================================================
+        LogUtil.printCodeByTemplate("skuId:{} 数量:{}",orderEntry.getSkuId(),orderEntry.getQuantity());
+        log.info("开始处理...");
+        log.info("处理中");
+        log.info("处理结束");
+        LogUtil.clearMDC();
+
+
+
+
+
         OrderEntryDetail orderEntryDetail = new OrderEntryDetail();
         BeanUtil.copySourceToTarget(orderEntry, orderEntryDetail);
         orderEntryArrayList.add(orderEntryDetail);
@@ -170,6 +262,7 @@ public class OrderServiceImpl {
     }
   }
 
+  @Override
   public void conversionSku(Long skuId, OrderDetailDTO.Sku skuDto) {
     Optional<Sku> skuOptional = skuMapper.findById(skuId);
     Sku sku = skuOptional

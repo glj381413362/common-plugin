@@ -7,7 +7,8 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread %X{X-B3-TraceId} %X{X-B3-SpanId} %X{X-Span-Export}] %-5level[%X{user} %X{logjson} %X{code}]%logger{50} - %msg%n
+            <pattern> %-5level[%X{code}]%logger{50} - %msg%n
+            <!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread %X{X-B3-TraceId} %X{X-B3-SpanId} %X{X-Span-Export}] %-5level[%X{user} %X{logjson} %X{code}]%logger{50} - %msg%n-->
             </pattern>
             <!-- 控制台也要使用utf-8，不要使用gbk -->
             <charset>UTF-8</charset>
