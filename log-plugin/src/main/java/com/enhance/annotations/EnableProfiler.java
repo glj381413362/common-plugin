@@ -21,8 +21,6 @@ import org.springframework.context.annotation.Import;
 @Retention(RUNTIME)
 @Target({ElementType.METHOD,ElementType.TYPE})
 public @interface EnableProfiler  {
-  // 开启方法调用耗时统计
-  boolean enableProfiler() default true;
   //分线器名称，不传默认为方法名称
   String profilerName() default "";
 

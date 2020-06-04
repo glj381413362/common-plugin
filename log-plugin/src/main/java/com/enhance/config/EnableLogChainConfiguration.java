@@ -26,7 +26,7 @@ public class EnableLogChainConfiguration {
 		filterRegistrationBean.setName("addTraceIdFilter");
 		filterRegistrationBean.setOrder(Ordered.LOWEST_PRECEDENCE);
 		filterRegistrationBean.setDispatcherTypes(REQUEST);
-		filterRegistrationBean.setUrlPatterns(Collections.singleton("/v1/*"));
+		filterRegistrationBean.setUrlPatterns(Collections.singleton("/*"));
 		return filterRegistrationBean;
 	}
 

@@ -3,27 +3,29 @@ package com.enhance.aspect;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.enhance.annotations.EnableProfiler;
 import com.enhance.annotations.Log;
+import com.enhance.annotations.LogProfiler;
+import com.enhance.aspect.LogThreadContext.LogContext;
 import com.enhance.constant.LogConst;
 import com.enhance.core.service.FilterResultService;
 import com.enhance.core.service.LogService;
-import com.enhance.util.LogUtil;
 import com.enhance.util.SPELUtil;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Stack;
+import java.util.Set;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
@@ -31,13 +33,12 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.slf4j.profiler.Profiler;
-import org.slf4j.profiler.ProfilerRegistry;
-import org.slf4j.profiler.TimeInstrument;
+import org.slf4j.ext.XLoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 
@@ -48,105 +49,137 @@ import org.springframework.stereotype.Component;
  */
 @Aspect
 @Component
+@Order(1)  //order最小最先执行  保证ProfilerAOP 后于LogAop执行
 public class LogAOP implements ApplicationContextAware {
 
   /**
    * logger
    */
-  private static final Logger LOG = LoggerFactory.getLogger(LogAOP.class);
+  private static final Logger LOG = XLoggerFactory.getXLogger(LogAOP.class);
   private static final String LOG_JSON = "logjson";
   private static final String USER = "user";
   private static final String CODE = "code";
   private static final String DOT_NOTATION = ".";
+  private final static String PROFILER_NAME = "profilerName";
+
   @Autowired
   private List<FilterResultService> filterResultServices;
-
   private LogService logService;
 
-  @Pointcut("@annotation(com.enhance.annotations.Log)")
+  @Pointcut("@annotation(com.enhance.annotations.Log) || @annotation(com.enhance.annotations.LogProfiler)")
   public void logPoint() {
   }
 
   @SneakyThrows
   @Around("logPoint()")
   public Object handlerLogMethod(ProceedingJoinPoint joinPoint) {
+
     //
     //  得到方法上的注解
     // ------------------------------------------------------------------------------
     MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    Log logAnnotation = signature.getMethod().getAnnotation(Log.class);
-    //===============================================================================
-    //  将log存到ThreadLocal中，在配合logutil使用
-    //===============================================================================
-    LogUtil.LOG_UTIL.set(logAnnotation);
-
-    Stack<String[]> stack = LogUtil.LOG_UTIL_CODES.get();
-    if (stack == null) {
-      stack = new Stack<>();
-    }
-    stack.push(new String[]{"", ""});
-    LogUtil.LOG_UTIL_CODES.set(stack);
-
-    Profiler profiler = LogUtil.LOG_PROFILERS.get();
-    boolean shoudPrint = profiler == null ? true : false;
-    this.handBeforeMethodLog(joinPoint, logAnnotation);
+    Method method = signature.getMethod();
+    LogProfiler logProfiler = method.getAnnotation(LogProfiler.class);
+    Log logAnnotation = method.getAnnotation(Log.class);
     Object result = null;
-    try {
+    if (logAnnotation != null && null != logProfiler) {
+      LOG.warn("@LogProfiler 和 @Log 不允许一起使用");
       result = joinPoint.proceed();
-    } catch (Exception e) {
-      e.printStackTrace();
-      //如果有异常继续抛
-      throw e;
-    } finally {
+    } else {
+      LogThreadContext ltc = LogThreadContext.getLogThreadContext();
       try {
-        profiler = LogUtil.LOG_PROFILERS.get();
-        if (shoudPrint && profiler != null) {
-          TimeInstrument timeInstrument = profiler.stop();
-          timeInstrument.print();
-          LogUtil.LOG_PROFILERS.remove();
-          ProfilerRegistry profilerRegistry = ProfilerRegistry.getThreadContextInstance();
-          profilerRegistry.clear();
+        try {
+          initLogContext(method, ltc);
+          this.handBeforeMethodLog(joinPoint, ltc);
+        } catch (Exception e) {
+          LOG.warn("handlerLogMethod before:{}", e);
         }
-        this.handAfterMethodLog(joinPoint, logAnnotation, result);
-        this.handleMDCValue();
-      }catch (Exception e){
-        LOG.error("finally error : {}",e);
+        result = joinPoint.proceed();
+      } finally {
+        try {
+          if (null != logProfiler) {
+            ProfilerAOP.printProfiler(ltc);
+          }
+          this.handAfterMethodLog(joinPoint, ltc, result);
+          this.handleMDCValue();
+        } catch (Exception e) {
+          LOG.warn("handlerLogMethod finally:{}", e);
+        }
       }
-
     }
+
     return result;
   }
 
+  /**
+   * 初始化日志上下文
+   *
+   * @return void
+   * @author gongliangjun 2020-06-04 2:30 PM
+   */
+  private void initLogContext(Method method, LogThreadContext ltc) {
+    LogContext logContext = new LogContext();
+    LogProfiler logProfiler = method.getAnnotation(LogProfiler.class);
+    Log logAnnotation = method.getAnnotation(Log.class);
+    if (logProfiler != null) {
+      logContext.setEnableLog(true);
+      logContext.setAction(logProfiler.action());
+      logContext.setEnableProfiler(true);
+      logContext.setExcludeInParam(logProfiler.excludeInParam());
+      logContext.setItemIds(logProfiler.itemIds());
+      logContext.setItemType(logProfiler.itemType());
+      logContext.setParam(logProfiler.param());
+      logContext.setPrintInfoLog(logProfiler.printInfoLog());
+      logContext.setPrintOutParamSize(logProfiler.printOutParamSize());
+      logContext.setProfilerName(logProfiler.profilerName());
+    } else if (logAnnotation != null) {
+      logContext.setEnableLog(true);
+      logContext.setAction(logAnnotation.action());
+      logContext.setExcludeInParam(logAnnotation.excludeInParam());
+      logContext.setItemIds(logAnnotation.itemIds());
+      logContext.setItemType(logAnnotation.itemType());
+      logContext.setParam(logAnnotation.param());
+      logContext.setPrintInfoLog(logAnnotation.printInfoLog());
+      logContext.setPrintOutParamSize(logAnnotation.printOutParamSize());
+    }
+    ltc.putContext(logContext);
+    ltc.setCurrentLogContext(logContext);
+  }
+
+  /**
+   * 方法执行完成后 处理MDC里的值
+   *
+   * @return void
+   * @author gongliangjun 2020-06-04 2:25 PM
+   */
   private void handleMDCValue() {
-    Stack<String[]> stacks = LogUtil.LOG_UTIL_CODES.get();
-    if (stacks != null) {
+    LogThreadContext ltc = LogThreadContext.getLogThreadContext();
+    try {
       //===============================================================================
-      //  先对自己的code出栈
+      //  先对自己的code出栈 并且清除MDC
       //===============================================================================
-      stacks.pop();
-      if (!stacks.empty()) {
+      Map<String, String> popCallStack = ltc.popCallStack();
+      clearMDC(popCallStack.keySet());
+
+      if (!ltc.isEmptyCallStack()) {
+        Map<String, String> currentMethodStack = ltc.peekCallStack();
         //===============================================================================
-        //  判断是否要把之前的数据存入MDC
+        //  把之前方法的数据存入MDC
         //===============================================================================
-        String[] peek = stacks.peek();
-        if (StringUtils.isNotEmpty(peek[0])) {
-          MDC.put(CODE, peek[0]);
-        }
-        if (StringUtils.isNotEmpty(peek[1])) {
-          MDC.put(LOG_JSON, peek[1]);
+        for (Entry<String, String> entry : currentMethodStack.entrySet()) {
+          String key = entry.getKey();
+          String value = entry.getValue();
+          MDC.put(key, value);
         }
       } else {
         // 因为Tomcat线程重用
         clearMDC(new String[]{CODE, USER, LOG_JSON});
-        LogUtil.LOG_UTIL_CODES.remove();
-        LogUtil.LOG_UTIL.remove();
       }
-    } else {
-      // 因为Tomcat线程重用
-      clearMDC(new String[]{CODE, USER, LOG_JSON});
-      LogUtil.LOG_UTIL_CODES.remove();
-      LogUtil.LOG_UTIL.remove();
+    } catch (Exception e) {
+      LOG.warn("handleMDCValue error: {} ", e);
     }
+
+
   }
 
   /**
@@ -155,87 +188,13 @@ public class LogAOP implements ApplicationContextAware {
    * @return void
    * @author 龚梁钧 2019-06-28 13:15
    */
-  @Deprecated
-  private void handAfterMethodLog(ProceedingJoinPoint joinPoint, Log logAnnotation, long startTime,
+  private void handAfterMethodLog(ProceedingJoinPoint joinPoint, LogThreadContext ltc,
       Object result) {
+    LogContext logContext = ltc.getCurrentLogContext();
     // 是否需要打印日志
-    boolean printLog = logAnnotation.printInfoLog();
+    boolean printLog = logContext.printInfoLog();
     // 如果是数组 是否打印出参大小，不打印对象值
-    boolean printOutParamSize = logAnnotation.printOutParamSize();
-    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    StringBuffer endString = new StringBuffer();
-    Object target = joinPoint.getTarget();
-    Logger logger = LoggerFactory.getLogger(target.getClass());
-    if (target instanceof Proxy) {
-      endString.append(signature.getDeclaringTypeName())
-          .append(".")
-          .append(signature.getName());
-    }
-    endString.append(signature.getName());
-    long handleTime = System.currentTimeMillis() - startTime;
-    endString.append(" end ")
-        .append("time consuming(")
-        .append(handleTime)
-        .append("ms)");
-    if (logger.isDebugEnabled() || printLog) {
-      if (result instanceof Collection && printOutParamSize) {
-        logger.info(endString.append(" output parameters size:{}").toString(),
-            Collection.class.cast(result).size());
-        return;
-      }
-      String responseStr = null;
-      try {
-        if (CollectionUtils.isNotEmpty(filterResultServices)) {
-          for (FilterResultService filterResultService : filterResultServices) {
-            Optional filterResult = filterResultService.filterResult(result);
-            // 返回null，说明不需要处理  返回Optional.empty(),说明处理了，处理结果为null
-            if (filterResult != null) {
-              LOG.debug("返回结果处理成功");
-              if (filterResult.isPresent()) {
-                Object fr = filterResult.get();
-                if (fr instanceof Collection && printOutParamSize) {
-                  logger.info(endString.append(" output parameters size:{}").toString(),
-                      Collection.class.cast(fr).size());
-                  return;
-                } else {
-                  responseStr = JSON.toJSONString(filterResult);
-                }
-                break;
-              } else {
-                LOG.debug("处理结果为空");
-              }
-
-            }
-          }
-        }
-      } catch (Exception e) {
-        LOG.warn("handAfterMethodLog error:{}", e);
-      }
-      if (StringUtils.isEmpty(responseStr)) {
-        responseStr = result == null ? "void" : JSON.toJSONString(result);
-      }
-      endString.append("output parameters：").append(responseStr);
-      if (printLog) {
-        logger.info(endString.toString());
-      } else {
-        logger.debug(endString.toString());
-      }
-    } else {
-      logger.info(endString.toString());
-    }
-  }
-
-  /**
-   * 打印调用方法后的日志
-   *
-   * @return void
-   * @author 龚梁钧 2019-06-28 13:15
-   */
-  private void handAfterMethodLog(ProceedingJoinPoint joinPoint, Log logAnnotation, Object result) {
-    // 是否需要打印日志
-    boolean printLog = logAnnotation.printInfoLog();
-    // 如果是数组 是否打印出参大小，不打印对象值
-    boolean printOutParamSize = logAnnotation.printOutParamSize();
+    boolean printOutParamSize = logContext.printOutParamSize();
     MethodSignature signature = (MethodSignature) joinPoint.getSignature();
     StringBuffer endString = new StringBuffer();
     Object target = joinPoint.getTarget();
@@ -275,7 +234,6 @@ public class LogAOP implements ApplicationContextAware {
               } else {
                 LOG.debug("处理结果为空");
               }
-
             }
           }
         }
@@ -302,21 +260,22 @@ public class LogAOP implements ApplicationContextAware {
    * @return org.slf4j.Logger
    * @author 龚梁钧 2019-06-28 13:13
    */
-  private Logger handBeforeMethodLog(ProceedingJoinPoint joinPoint, Log logAnnotation) {
-    Class[] excludeInParam = logAnnotation.excludeInParam();
-    String[] params = logAnnotation.param();
+  private Logger handBeforeMethodLog(ProceedingJoinPoint joinPoint, LogThreadContext ltc) {
+    LogContext logContext = ltc.getCurrentLogContext();
+    Class[] excludeInParam = logContext.excludeInParam();
+    String[] params = logContext.param();
     Object target = joinPoint.getTarget();
     Class<?> targetClass = target.getClass();
-    Signature signature = joinPoint.getSignature();
     // 是否需要打印日志
-    boolean printLog = logAnnotation.printInfoLog();
-    boolean enableProfiler = logAnnotation.enableProfiler();
+    boolean printLog = logContext.printInfoLog();
+    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+
     Logger logger = LoggerFactory.getLogger(targetClass);
     if (logger.isDebugEnabled() || printLog) {
       //===============================================================================
       //  保存action、itemType、itemId到MDC
       //===============================================================================
-      saveLogInfo2MDC(joinPoint, logAnnotation);
+      saveLogInfo2MDC(joinPoint, ltc);
 
       StringBuilder mesInfo = new StringBuilder();
       if (target instanceof Proxy) {
@@ -324,48 +283,13 @@ public class LogAOP implements ApplicationContextAware {
             .append(".");
       }
       mesInfo.append(signature.getName());
-     String profilerName =  new StringBuilder(targetClass.getSimpleName()).append("#").append(mesInfo.toString()).toString();
+      String profilerName = new StringBuilder(targetClass.getSimpleName()).append("#")
+          .append(mesInfo.toString()).toString();
       //===============================================================================
       //  方法调用耗时统计
       //===============================================================================
-      if (enableProfiler) {
-        Profiler profiler = LogUtil.LOG_PROFILERS.get();
-        if (profiler == null) {
-          profiler = new Profiler(mesInfo.toString());
-          LogUtil.LOG_PROFILERS.set(profiler);
-          // 在线程上下文的探查器注册表中注册此探查器
-          ProfilerRegistry profilerRegistry = ProfilerRegistry.getThreadContextInstance();
-          profiler.registerWith(profilerRegistry);
-          profiler.setLogger(logger);
-          profiler.start(profilerName);
-
-        } else {
-          try {
-            //===============================================================================
-            //  动态修改log注解的profilerName值
-            //===============================================================================
-            InvocationHandler invocationHandler = Proxy.getInvocationHandler(logAnnotation);
-            Field declaredField = invocationHandler.getClass().getDeclaredField("memberValues");
-            declaredField.setAccessible(true);
-            // 获取 memberValues
-            Map memberValues = (Map) declaredField.get(invocationHandler);
-            // 修改 profilerName 属性值
-            memberValues.put("profilerName", profilerName);
-
-
-            profiler.startNested(profilerName);
-            // 获取注册的分析器
-            ProfilerRegistry profilerRegistry = ProfilerRegistry.getThreadContextInstance();
-            Profiler childProfiler = profilerRegistry.get(profilerName);
-            if (childProfiler != null) {
-              childProfiler.start(profilerName);
-            }
-          } catch (IllegalAccessException e) {
-            LOG.warn("IllegalAccessException {}:",e);
-          } catch (NoSuchFieldException e) {
-            LOG.warn("NoSuchFieldException {}:",e);
-          }
-        }
+      if (Boolean.TRUE.equals(logContext.enableProfiler())) {
+        ProfilerAOP.handleProfiler(logger, ltc, logContext, profilerName);
       }
       mesInfo.append(" start. parameters :{}");
       //
@@ -396,64 +320,7 @@ public class LogAOP implements ApplicationContextAware {
     return logger;
   }
 
-  /**
-   * 打印调用方法前的日志
-   *
-   * @return org.slf4j.Logger
-   * @author 龚梁钧 2019-06-28 13:13
-   */
- /* @Deprecated
-  private Logger handBeforeMethodLog(ProceedingJoinPoint joinPoint, Log logAnnotation) {
-    Class[] excludeInParam = logAnnotation.excludeInParam();
-    String[] params = logAnnotation.param();
-    Object target = joinPoint.getTarget();
-    Class<?> targetClass = target.getClass();
-    Signature signature = joinPoint.getSignature();
-    // 是否需要打印日志
-    boolean printLog = logAnnotation.printInfoLog();
-    Logger logger = LoggerFactory.getLogger(targetClass);
-    if (logger.isDebugEnabled() || printLog) {
-      //===============================================================================
-      //  保存action、itemType、itemId到MDC
-      //===============================================================================
-      saveLogInfo2MDC(joinPoint, logAnnotation);
-
-      StringBuilder mesInfo = new StringBuilder();
-      if (target instanceof Proxy) {
-        mesInfo.append(signature.getDeclaringTypeName())
-            .append(".");
-      }
-      mesInfo.append(signature.getName());
-      mesInfo.append(" start. parameters :{}");
-      //
-      // 如果params大于0，说明存在用户想打印的参数
-      // ------------------------------------------------------------------------------
-      if (params.length > 0) {
-        SPELUtil spel = new SPELUtil(joinPoint);
-        JSONObject json = new JSONObject();
-        for (String param : params) {
-          // 其他参数，spel表达式
-          json.put(param, spel.cacl(param));
-        }
-        if (printLog) {
-          logger.info(mesInfo.toString(), json.toJSONString());
-        } else {
-          logger.debug(mesInfo.toString(), json.toJSONString());
-        }
-      } else {
-        // 所在的类.方法
-        String methodStr = this.getMethodParam(joinPoint, excludeInParam);
-        if (printLog) {
-          logger.info(mesInfo.toString(), methodStr);
-        } else {
-          logger.debug(mesInfo.toString(), methodStr);
-        }
-      }
-    }
-    return logger;
-  }
-*/
-  private void saveLogInfo2MDC(ProceedingJoinPoint pjp, Log logAnnotation) {
+  private void saveLogInfo2MDC(ProceedingJoinPoint pjp, LogThreadContext ltc) {
     //===============================================================================
     //  保存用户信息到MDC
     //===============================================================================
@@ -463,12 +330,16 @@ public class LogAOP implements ApplicationContextAware {
         MDC.put(USER, userInfo);
       }
     }
-    JSONObject json = this.getLogJson(pjp, logAnnotation);
+
+    JSONObject json = this.getLogJson(pjp, ltc);
     if (!json.isEmpty()) {
-      MDC.put(LOG_JSON, json.toJSONString());
-      Stack<String[]> stack = LogUtil.LOG_UTIL_CODES.get();
-      stack.peek()[1] = json.toJSONString();
-      LogUtil.LOG_UTIL_CODES.set(stack);
+      String jsonString = json.toJSONString();
+      MDC.put(LOG_JSON, jsonString);
+      ltc.putCallStack(new HashMap(3) {{
+        put(LOG_JSON, jsonString);
+      }});
+    } else {
+      ltc.putCallStack(new HashMap(1));
     }
   }
 
@@ -478,10 +349,11 @@ public class LogAOP implements ApplicationContextAware {
    * @return com.alibaba.fastjson.JSONObject
    * @author 龚梁钧 2019-06-28 11:24
    */
-  private JSONObject getLogJson(ProceedingJoinPoint pjp, Log logAnnotation) {
-    LogConst.Action action = logAnnotation.action();
-    String itemType = logAnnotation.itemType();
-    String[] itemIds = logAnnotation.itemIds();
+  private JSONObject getLogJson(ProceedingJoinPoint pjp, LogThreadContext ltc) {
+    LogContext logContext = ltc.getCurrentLogContext();
+    LogConst.Action action = logContext.action();
+    String itemType = logContext.itemType();
+    String[] itemIds = logContext.itemIds();
     SPELUtil spel = new SPELUtil(pjp);
     JSONObject json = new JSONObject();
     // 操作
@@ -507,6 +379,12 @@ public class LogAOP implements ApplicationContextAware {
   }
 
   private void clearMDC(String[] clears) {
+    for (String clear : clears) {
+      MDC.remove(clear);
+    }
+  }
+
+  private void clearMDC(Set<String> clears) {
     for (String clear : clears) {
       MDC.remove(clear);
     }

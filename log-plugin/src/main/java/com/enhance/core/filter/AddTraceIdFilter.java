@@ -1,5 +1,6 @@
 package com.enhance.core.filter;
 
+import com.enhance.aspect.LogThreadContext;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
 /**
  * <p>
@@ -51,6 +53,8 @@ public class AddTraceIdFilter implements Filter {
 			filterChain.doFilter(servletRequest, servletResponse);
 		} finally {
 			MDC.remove(TRACEID);
+			//防止内存泄漏
+			LogThreadContext.LOG_THREAD_CONTEXT.remove();
 		}
 	}
 

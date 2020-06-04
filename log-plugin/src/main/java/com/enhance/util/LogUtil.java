@@ -15,7 +15,7 @@ import org.springframework.util.Assert;
 
 
 /**
- * description: job的日志打印
+ * description: 日志打印工具类
  *
  * @author roman 2019/09/05 10:57
  */
@@ -31,30 +31,12 @@ public class LogUtil {
 
 
   /**
-   * 开始方法耗时统计
-   *
-   * @return void
-   * @author gongliangjun 2020-06-01 11:26 AM
-   */
-  public static void startProfiler(Logger logger, String name) {
-    Assert.notNull(logger, "logger 不能为空");
-    Profiler profiler = LOG_PROFILERS.get();
-    if (profiler == null) {
-      profiler = new Profiler(name);
-      profiler.setLogger(logger);
-      LOG_PROFILERS.set(profiler);
-    }
-    profiler.start(name);
-  }
-
-
-  /**
    * 开始方法耗时统计,需要配合注解@Log使用
    *
    * @return void
    * @author gongliangjun 2020-06-01 11:26 AM
    */
-  public static void startProfiler(String name) {
+  /*public static void startProfiler(String name) {
     if (isEnableProfiler()) {
       ProfilerRegistry profilerRegistry = ProfilerRegistry.getThreadContextInstance();
       Log logs = LOG_UTIL.get();
@@ -67,7 +49,7 @@ public class LogUtil {
     } else {
       log.warn("method startProfiler(name) 需要配合注解@Log使用,并且开启enableProfiler");
     }
-  }
+  }*/
 
   /**
    * 打印方法耗时统计
@@ -178,7 +160,7 @@ public class LogUtil {
     Log logs = LOG_UTIL.get();
     return logs != null;
   }
-
+/*
   private static boolean isEnableProfiler() {
 
     Log logs = LOG_UTIL.get();
@@ -187,5 +169,5 @@ public class LogUtil {
     } else {
       return false;
     }
-  }
+  }*/
 }

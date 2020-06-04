@@ -1,13 +1,12 @@
 package com.enhance.annotations;
 
 
-import com.enhance.constant.LogConst;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+import com.enhance.constant.LogConst;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
-
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * <p>
@@ -18,7 +17,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  */
 @Retention(RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Log  {
+public @interface LogProfiler {
 	// 操作类型
 	LogConst.Action action() default LogConst.Action.NULL;
 
@@ -30,6 +29,9 @@ public @interface Log  {
 
 	// 对象类型
 	boolean printInfoLog() default true;
+
+	//分线器名称，不传默认为方法名称
+	String profilerName() default "";
 
 	// 如果是数组 是否打印出参大小，不打印对象值
 	boolean printOutParamSize() default true;
