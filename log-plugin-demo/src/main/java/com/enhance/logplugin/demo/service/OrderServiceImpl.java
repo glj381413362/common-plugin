@@ -9,6 +9,7 @@ import com.enhance.annotations.EnableProfiler;
 import com.enhance.annotations.Log;
 import com.enhance.annotations.LogProfiler;
 import com.enhance.aspect.LogThreadContext;
+import com.enhance.constant.LogConst.Action;
 import com.enhance.logplugin.demo.controller.dto.OrderDetailDTO;
 import com.enhance.logplugin.demo.controller.dto.OrderDetailDTO.OrderEntryDetail;
 import com.enhance.logplugin.demo.controller.dto.OrderDetailDTO.UserDTO;
@@ -57,8 +58,7 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
    * @return java.util.List<com.enhance.logplugin.demo.entity.Order>
    * @author gongliangjun 2020-06-02 4:09 PM
    */
-  @EnableProfiler()
-  @LogProfiler
+  @Log(itemIds = "order.orderCode",itemType = "order",action = Action.Q)
   @Override
   public List<Order> listOrder(Order order) {
     List<Order> orders = orderMapper.findAll(Example.of(order));
@@ -72,15 +72,23 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
    * @return com.enhance.logplugin.demo.controller.dto.OrderDetailDTO
    * @author gongliangjun 2020-06-02 4:10 PM
    */
-  @LogProfiler
+  @LogProfiler(itemIds = "orderCode")
   @Override
   public OrderDetailDTO queryOrderDetail(String orderCode) {
+    log.info("开始处理订单数据");
+
     SleepUtil.threadSleep(2);
     Order order1 = new Order();
     order1.setOrderCode(orderCode);
     LogThreadContext ltc = LogUtil.startProfiler("findOne");
     Optional<Order> orderOptional = orderMapper.findOne(Example.of(order1));
     ltc.stopInstantProfiler();
+
+    LogUtil.startProfiler("复杂逻辑统计");
+    log.info("这里需要处理一大段逻辑");
+    SleepUtil.threadSleep(4,10);
+    ltc.stopInstantProfiler();
+
     SleepUtil.threadSleep(2);
     OrderDetailDTO detailDTO = new OrderDetailDTO();
     if (orderOptional.isPresent()) {
@@ -93,9 +101,7 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
       //  组装订单行dto
       //===============================================================================
       try {
-        ltc = LogUtil.startProfiler("conversionOrderEntry");
         self().conversionOrderEntry(order, detailDTO);
-        ltc.stopInstantProfiler();
         SleepUtil.threadSleep(2);
       } catch (Exception e) {
         log.throwing(e);
@@ -103,29 +109,35 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
       //===============================================================================
       //  组装用户
       //===============================================================================
-      ltc = LogUtil.startProfiler("conversionUser");
-      conversionUser(order.getUserId(), detailDTO);
-      ltc.stopInstantProfiler();
+      self().conversionUser(order.getUserId(), detailDTO);
       SleepUtil.threadSleep(2);
+
     }
+    log.info("订单数据处理完成");
     return detailDTO;
   }
 
+  @LogProfiler(itemIds = "userId")
+  @Override
   public void conversionUser(Long userId, OrderDetailDTO detailDTO) {
+    log.info("开始处理用户数据");
     Optional<User> byId = userMapper.findById(userId);
     byId.ifPresent(user -> {
       UserDTO userDTO = new UserDTO();
       detailDTO.setUser(userDTO);
       BeanUtil.copySourceToTarget(user, userDTO);
     });
+    log.info("用户数据处理完成");
+
   }
 
   @Override
   @Transactional
-  @Log(itemIds = {"orderDetailDTO.orderCode", "orderDetailDTO.user.userCode"})
+  @Log(itemIds = {"orderDetailDTO.orderCode"},itemType = "order表",action = Action.U)
   public Order update(OrderDetailDTO orderDetailDTO) {
+    log.info("开始修改订单...");
     List<OrderEntryDetail> orderEntryDetails = orderDetailDTO.getOrderEntryDetails();
-    handOrderEntry(orderEntryDetails);
+    self().handOrderEntry(orderEntryDetails);
     UserDTO user = orderDetailDTO.getUser();
     Optional<User> userOptional = userMapper.findById(user.getUserId());
     userOptional.ifPresent(user1 -> {
@@ -137,12 +149,21 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
         () -> new CommonException(new Msg("根据订单id[{}],未查询到相应订单"), orderDetailDTO.getOrderId()));
     BeanUtil.copySourceToTarget(orderDetailDTO, order);
     order = orderMapper.saveAndFlush(order);
+    log.info("修改订单结束");
     return order;
   }
 
+  @LogProfiler(excludeInParam = {"arg2","arg1.userId"},includeInParam = "arg0.orderCode")
   @Override
-  @Log(itemIds = {"orderEntryDetails[0].orderId"})
+  public Order handelUpdate(OrderDetailDTO orderDetailDTO, UserDTO userDTO,
+      List<OrderEntryDetail> orderEntryDetails) {
+    return null;
+  }
+
+  @Override
+  @LogProfiler(itemIds = {"orderEntryDetails[0].orderId"})
   public void handOrderEntry(List<OrderEntryDetail> orderEntryDetails) {
+    log.info("开始修改订单行...");
     for (OrderEntryDetail orderEntryDetail : orderEntryDetails) {
       Optional<OrderEntry> byId = orderEntryMapper.findById(orderEntryDetail.getOrderEntryId());
       byId.ifPresent(orderEntry -> {
@@ -150,16 +171,18 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
         orderEntryMapper.saveAndFlush(orderEntry);
       });
       OrderDetailDTO.Sku sku = orderEntryDetail.getSku();
-      log.info("开始修改sku相关信息");
       Optional<Sku> optionalSku = skuMapper.findById(orderEntryDetail.getSkuId());
       optionalSku.ifPresent(sku1 -> {
         BeanUtil.copySourceToTarget(sku, sku1);
         skuMapper.saveAndFlush(sku1);
       });
     }
+    log.info("修改订单行完成");
   }
 
-  @EnableProfiler
+//  @EnableProfiler
+
+  @LogProfiler(itemIds = "order.orderCode")
   @Override
   public void conversionOrder(Order order, OrderDetailDTO detailDTO) {
 
@@ -168,21 +191,21 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
 
     BeanUtil.copySourceToTarget(order, detailDTO);
 
-    self().tempA();
+//    self().tempA();
   }
 
-  @EnableProfiler
+//  @EnableProfiler
   @Override
   public void tempA() {
     SleepUtil.threadSleep(2);
     LogThreadContext ltc = LogUtil.startProfiler("A");
     SleepUtil.threadSleep(2);
     ltc.stopInstantProfiler();
-    self().tempB();
+//    self().tempB();
 
   }
 
-  @EnableProfiler
+//  @EnableProfiler
   @Override
   public void tempB() {
     SleepUtil.threadSleep(2);
@@ -191,9 +214,11 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
     ltc.stopInstantProfiler();
 
   }
-
+  @LogProfiler(itemIds = "order.orderCode")
   @Override
   public void conversionOrderEntry(Order order, OrderDetailDTO detailDTO) {
+    log.info("开始处理订单行数据");
+
     OrderEntry query = new OrderEntry();
     query.setOrderId(order.getOrderId());
     List<OrderEntry> orderEntries = orderEntryMapper.findAll(Example.of(query));
@@ -241,7 +266,6 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
 
 
 
-
         OrderEntryDetail orderEntryDetail = new OrderEntryDetail();
         BeanUtil.copySourceToTarget(orderEntry, orderEntryDetail);
         orderEntryArrayList.add(orderEntryDetail);
@@ -251,7 +275,7 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
         OrderDetailDTO.Sku sku = new OrderDetailDTO.Sku();
         orderEntryDetail.setSku(sku);
         try {
-          conversionSku(orderEntry.getSkuId(), sku);
+          self().conversionSku(orderEntry.getSkuId(), sku);
         } catch (Exception e) {
           log.catching(e);
         }
@@ -260,14 +284,20 @@ public class OrderServiceImpl implements AopProxy<OrderService>, OrderService {
     } else {
       throw new CommonException(new Msg("根据orderCode:{}未查询到订单行数据"), order.getOrderCode());
     }
+    log.info("订单行数据处理完成");
+
   }
 
+  @LogProfiler(itemIds = "skuId",excludeInParam = "arg1")
   @Override
   public void conversionSku(Long skuId, OrderDetailDTO.Sku skuDto) {
+    log.info("开始处理商品数据");
     Optional<Sku> skuOptional = skuMapper.findById(skuId);
     Sku sku = skuOptional
         .orElseThrow(() -> new CommonException(new Msg("根据skuId:{}未查询到商品数据"), skuId));
     BeanUtil.copySourceToTarget(sku, skuDto);
+    log.info("商品数据处理结束");
+
   }
 
 }

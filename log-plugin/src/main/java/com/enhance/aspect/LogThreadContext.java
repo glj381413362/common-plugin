@@ -220,9 +220,10 @@ public final class LogThreadContext {
     // 如果是数组 是否打印出参大小，不打印对象值
     private boolean printOutParamSize;
 
-    // 需要排除的入参
-    private Class[] excludeInParam;
-
+    // 需要排除不打印的入参
+    private String[] excludeInParam;
+    //需要打印的入参
+    private String[] includeInParam;
     // （其他）参数
     private String[] param;
 
@@ -265,8 +266,11 @@ public final class LogThreadContext {
       return printOutParamSize;
     }
 
-    protected Class[] excludeInParam() {
+    protected String[] excludeInParam() {
       return excludeInParam;
+    }
+    protected String[] includeInParam() {
+      return includeInParam;
     }
 
     protected String[] param() {
@@ -301,8 +305,12 @@ public final class LogThreadContext {
       this.printOutParamSize = printOutParamSize;
     }
 
-    protected void setExcludeInParam(Class[] excludeInParam) {
+    protected void setExcludeInParam(String[] excludeInParam) {
       this.excludeInParam = excludeInParam;
+    }
+
+    protected void setIncludeValue(String[] includeInParam) {
+      this.includeInParam = includeInParam;
     }
 
     protected void setParam(String[] param) {

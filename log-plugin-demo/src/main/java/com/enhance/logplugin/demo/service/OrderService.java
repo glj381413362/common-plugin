@@ -21,8 +21,10 @@ public interface OrderService {
   List<Order> listOrder(Order order);
 
   OrderDetailDTO queryOrderDetail(String orderCode);
-
+  void conversionUser(Long userId, OrderDetailDTO detailDTO);
   Order update(OrderDetailDTO orderDetailDTO);
+
+  Order handelUpdate(OrderDetailDTO orderDetailDTO,OrderDetailDTO.UserDTO userDTO,List<OrderDetailDTO.OrderEntryDetail> orderEntryDetails );
 
   void handOrderEntry(List<OrderEntryDetail> orderEntryDetails);
 

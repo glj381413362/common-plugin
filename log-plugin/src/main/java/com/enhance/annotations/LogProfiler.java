@@ -37,7 +37,10 @@ public @interface LogProfiler {
 	boolean printOutParamSize() default true;
 
 	// 需要排除的入参
-	Class[] excludeInParam() default {};
+	String[] excludeInParam() default {};
+
+	//需要打印的入参
+	String[] includeInParam() default {};
 
 	// （其他）参数
 	String[] param() default {};

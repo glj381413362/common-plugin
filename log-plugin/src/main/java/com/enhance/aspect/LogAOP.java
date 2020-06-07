@@ -2,8 +2,12 @@ package com.enhance.aspect;
 
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.enhance.annotations.EnableProfiler;
+import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
+import com.alibaba.fastjson.support.config.FastJsonConfig;
+import com.alibaba.fastjson.support.spring.PropertyPreFilters;
+import com.alibaba.fastjson.support.spring.PropertyPreFilters.MySimplePropertyPreFilter;
 import com.enhance.annotations.Log;
 import com.enhance.annotations.LogProfiler;
 import com.enhance.aspect.LogThreadContext.LogContext;
@@ -14,6 +18,7 @@ import com.enhance.util.SPELUtil;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -126,6 +132,7 @@ public class LogAOP implements ApplicationContextAware {
       logContext.setAction(logProfiler.action());
       logContext.setEnableProfiler(true);
       logContext.setExcludeInParam(logProfiler.excludeInParam());
+      logContext.setIncludeValue(logProfiler.includeInParam());
       logContext.setItemIds(logProfiler.itemIds());
       logContext.setItemType(logProfiler.itemType());
       logContext.setParam(logProfiler.param());
@@ -136,6 +143,7 @@ public class LogAOP implements ApplicationContextAware {
       logContext.setEnableLog(true);
       logContext.setAction(logAnnotation.action());
       logContext.setExcludeInParam(logAnnotation.excludeInParam());
+      logContext.setIncludeValue(logAnnotation.includeInParam());
       logContext.setItemIds(logAnnotation.itemIds());
       logContext.setItemType(logAnnotation.itemType());
       logContext.setParam(logAnnotation.param());
@@ -243,7 +251,7 @@ public class LogAOP implements ApplicationContextAware {
       if (StringUtils.isEmpty(responseStr)) {
         responseStr = result == null ? "void" : JSON.toJSONString(result);
       }
-      endString.append("output parameters：").append(responseStr);
+      endString.append("output parameters:").append(responseStr);
       if (printLog) {
         logger.info(endString.toString());
       } else {
@@ -262,7 +270,6 @@ public class LogAOP implements ApplicationContextAware {
    */
   private Logger handBeforeMethodLog(ProceedingJoinPoint joinPoint, LogThreadContext ltc) {
     LogContext logContext = ltc.getCurrentLogContext();
-    Class[] excludeInParam = logContext.excludeInParam();
     String[] params = logContext.param();
     Object target = joinPoint.getTarget();
     Class<?> targetClass = target.getClass();
@@ -291,7 +298,7 @@ public class LogAOP implements ApplicationContextAware {
       if (Boolean.TRUE.equals(logContext.enableProfiler())) {
         ProfilerAOP.handleProfiler(logger, ltc, logContext, profilerName);
       }
-      mesInfo.append(" start. parameters :{}");
+      mesInfo.append(" start parameters:{}");
       //
       // 如果params大于0，说明存在用户想打印的参数
       // ------------------------------------------------------------------------------
@@ -309,7 +316,8 @@ public class LogAOP implements ApplicationContextAware {
         }
       } else {
         // 所在的类.方法
-        String methodStr = this.getMethodParam(joinPoint, excludeInParam);
+        String methodStr = this.getMethodParam(joinPoint, logContext);
+//        String methodStr = this.getMethodParam(joinPoint, excludeInParam);
         if (printLog) {
           logger.info(mesInfo.toString(), methodStr);
         } else {
@@ -396,29 +404,69 @@ public class LogAOP implements ApplicationContextAware {
    * @return java.lang.String
    * @author 龚梁钧 2019-06-28 13:35
    */
-  private String getMethodParam(ProceedingJoinPoint point, Class[] excludeInParam) {
+  private String getMethodParam(ProceedingJoinPoint point, LogContext logContext) {
     Object[] methodArgs = point.getArgs();
     Parameter[] parameters = ((MethodSignature) point.getSignature()).getMethod().getParameters();
     String requestStr;
     try {
-      requestStr = logParam(parameters, methodArgs, excludeInParam);
+
+      requestStr = logParam(parameters, methodArgs, logContext);
+//      requestStr = logParam(methodArgs, logContext);
     } catch (Exception e) {
+      LOG.warn("failed to get parameters: {}", e);
       requestStr = "failed to get parameters";
     }
     return requestStr;
   }
+ /*private String getMethodParam(ProceedingJoinPoint point, Class[] excludeInParam) {
+    Object[] methodArgs = point.getArgs();
+    Parameter[] parameters = ((MethodSignature) point.getSignature()).getMethod().getParameters();
+    String requestStr;
+    try {
+
+//      requestStr = logParam(parameters, methodArgs, excludeInParam);
+      requestStr = logParam(methodArgs, excludeInParam);
+    } catch (Exception e) {
+      LOG.warn("failed to get parameters: {}", e);
+      requestStr = "failed to get parameters";
+    }
+    return requestStr;
+  }
+*/
 
   /**
    * 拼接入参
    *
-   * @param excludeInParam 不需要拼接的参数
+   * @param paramsArgsName
+   * @param paramsArgsValue
+   * @param logContext
+   * @author gongliangjun 2020-06-05 3:16 PM
    * @return java.lang.String
-   * @author 龚梁钧 2019-06-28 13:34
    */
   private String logParam(Parameter[] paramsArgsName, Object[] paramsArgsValue,
-      Class[] excludeInParam) {
+      LogContext logContext) {
     if (ArrayUtils.isEmpty(paramsArgsName) || ArrayUtils.isEmpty(paramsArgsValue)) {
       return "";
+    }
+    String[] excludeInParam = logContext.getExcludeInParam();
+    String[] includeInParam = logContext.getIncludeInParam();
+    Map<String, List<String>> excludeCollect = null;
+    Map<String, List<String>> includeCollect = null;
+    if (ArrayUtils.isNotEmpty(includeInParam)) {
+      includeCollect = Arrays.stream(includeInParam)
+          .filter(a -> a.startsWith("arg") && a.contains("."))
+          .collect(Collectors.groupingBy(e -> {
+            String substring = e.substring(0, 4);
+            return substring;
+          }));
+    }
+    if (ArrayUtils.isNotEmpty(excludeInParam)) {
+      excludeCollect = Arrays.stream(excludeInParam)
+          .filter(a -> a.startsWith("arg") && a.contains("."))
+          .collect(Collectors.groupingBy(e -> {
+            String substring = e.substring(0, 4);
+            return substring;
+          }));
     }
     StringBuffer buffer = new StringBuffer();
     Flag:
@@ -430,7 +478,157 @@ public class LogAOP implements ApplicationContextAware {
       //
       // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不进行拼接
       // ------------------------------------------------------------------------------
+      for (String exclude : excludeInParam) {
+        if (name.equals(exclude)) {
+          continue Flag;
+        }
+        Class<?> aClass = value.getClass();
+        if (exclude.equals(aClass.getSimpleName()) || exclude.equals(aClass.getName())) {
+          continue Flag;
+        }
+      }
+      buffer.append(name + "=");
+      if (value instanceof String) {
+        buffer.append(value + ",");
+      } else {
+        PropertyPreFilters filter = new PropertyPreFilters();
+        if (null != includeCollect) {
+          List<String> list = includeCollect.get(name);
+          if (null != list) {
+            for (String e : list) {
+              filter.addFilter(e.substring(e.indexOf(".")+1));
+            }
+          }
+        }
+        if (null != excludeCollect) {
+          List<String> list = excludeCollect.get(name);
+          if (null != list) {
+            for (String e : list) {
+              filter.addFilter().addExcludes(e.substring(e.indexOf(".")+1));
+            }
+          }
+        }
+        List<MySimplePropertyPreFilter> filters = filter.getFilters();
+        if (null != filters && filters.size() > 0) {
+          SimplePropertyPreFilter[] simplePropertyPreFilters = new SimplePropertyPreFilter[filters
+              .size()];
+          for (int i1 = 0; i1 < filters.size(); i1++) {
+            simplePropertyPreFilters[i1] = filters.get(i1);
+          }
+          buffer.append(JSON.toJSONString(value, simplePropertyPreFilters) + ",");
+        }else {
+          buffer.append(JSON.toJSONString(value) + ",");
+        }
+      }
+    }
+    return buffer.toString();
+  }
+
+  public static void main (String args[] ){
+    String[] includeInParam = new String[]{"arg0.a","arg1.a","arg0.3"};
+    Map<String, List<String>> collect = Arrays.stream(includeInParam)
+        .collect(Collectors.groupingBy(e -> {
+          String substring = e.substring(0,4);
+          return substring;
+        }));
+    List<String> a = collect.get("a");
+    a.forEach(aa->{
+      System.out.println();
+
+    });
+
+    System.out.println();
+  }
+ /* private String logParam(Object[] paramsArgsValue, LogContext logContext) {
+    if (ArrayUtils.isEmpty(paramsArgsValue)) {
+      return "";
+    }
+    Class[] excludeInParam = logContext.getExcludeInParam();
+    String[] excludeValue = logContext.getExcludeValue();
+    if (ArrayUtils.isNotEmpty(excludeValue)) {
+      StringBuffer buffer = new StringBuffer();
+
+      Flag:
+      for (int i = 0; i < paramsArgsValue.length; i++) {
+        //参数名
+        String name = paramsArgsName[i].getName();
+        //参数值
+        Object value = paramsArgsValue[i];
+        //
+        // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不进行拼接
+        // ------------------------------------------------------------------------------
+        for (Class exclude : excludeInParam) {
+          filter.addFilter(exclude, "userCode");
+          if (exclude.equals(value.getClass())) {
+            continue Flag;
+          }
+        }
+        buffer.append(name + "=");
+        if (value instanceof String) {
+          buffer.append(value + ",");
+        } else {
+//        filter.addFilter().addExcludes("user");
+//        filter.addFilter("userCode");
+
+          FastJsonConfig jsonConfig = new FastJsonConfig();
+          buffer.append(JSON.toJSONString(value, simplePropertyPreFilters) + ",");
+        }
+      }
+    }
+    if (ArrayUtils.isNotEmpty(excludeInParam)) {
+      List temp = new ArrayList(paramsArgsValue.length);
+      for (Object value : paramsArgsValue) {
+        //.getClass().getSimpleName()
+        // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不放入temp集合
+        // ------------------------------------------------------------------------------
+        for (Class exclude : excludeInParam) {
+          if (!exclude.equals(value.getClass())) {
+            temp.add(value);
+          }
+        }
+      }
+      if (ArrayUtils.isNotEmpty(excludeValue)) {
+        PropertyPreFilters filter = new PropertyPreFilters();
+        filter.addFilter(excludeValue);
+        List<MySimplePropertyPreFilter> filters = filter.getFilters();
+        SimplePropertyPreFilter[] simplePropertyPreFilters = new SimplePropertyPreFilter[filters
+            .size()];
+
+        for (int i1 = 0; i1 < filters.size(); i1++) {
+          simplePropertyPreFilters[i1] = filters.get(i1);
+        }
+        return JSONArray.toJSONString(temp, simplePropertyPreFilters);
+      }
+      return JSONArray.toJSONString(temp);
+    } else {
+      if (ArrayUtils.isNotEmpty(excludeValue)) {
+        PropertyPreFilters filter = new PropertyPreFilters();
+        filter.addFilter(excludeValue);
+        List<MySimplePropertyPreFilter> filters = filter.getFilters();
+        SimplePropertyPreFilter[] simplePropertyPreFilters = new SimplePropertyPreFilter[filters
+            .size()];
+
+        for (int i1 = 0; i1 < filters.size(); i1++) {
+          simplePropertyPreFilters[i1] = filters.get(i1);
+        }
+        return JSONArray.toJSONString(paramsArgsValue, simplePropertyPreFilters);
+      }
+    }
+    return JSONArray.toJSONString(paramsArgsValue);
+*//*
+    StringBuffer buffer = new StringBuffer();
+
+    Flag:
+    for (int i = 0; i < paramsArgsValue.length; i++) {
+      //参数名
+      String name = paramsArgsName[i].getName();
+      //参数值
+      Object value = paramsArgsValue[i];
+      //
+      // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不进行拼接
+      // ------------------------------------------------------------------------------
       for (Class exclude : excludeInParam) {
+        filter.addFilter(exclude, "userCode");
         if (exclude.equals(value.getClass())) {
           continue Flag;
         }
@@ -439,12 +637,16 @@ public class LogAOP implements ApplicationContextAware {
       if (value instanceof String) {
         buffer.append(value + ",");
       } else {
-        buffer.append(JSON.toJSONString(value) + ",");
+//        filter.addFilter().addExcludes("user");
+//        filter.addFilter("userCode");
+
+        FastJsonConfig jsonConfig = new FastJsonConfig();
+        buffer.append(JSON.toJSONString(value, simplePropertyPreFilters) + ",");
       }
     }
-    return buffer.toString();
+    return buffer.toString();*//*
   }
-
+*/
 
   @Override
   public void setApplicationContext(ApplicationContext applicationContext) {

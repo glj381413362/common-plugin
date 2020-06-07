@@ -1,4 +1,4 @@
-package com.enhance.logplugin.demo.controller.filter;
+package com.enhance.logplugin.demo.filter;
 
 import com.enhance.core.service.LogService;
 import org.springframework.stereotype.Component;
