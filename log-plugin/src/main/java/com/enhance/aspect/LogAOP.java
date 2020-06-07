@@ -411,28 +411,12 @@ public class LogAOP implements ApplicationContextAware {
     try {
 
       requestStr = logParam(parameters, methodArgs, logContext);
-//      requestStr = logParam(methodArgs, logContext);
     } catch (Exception e) {
       LOG.warn("failed to get parameters: {}", e);
       requestStr = "failed to get parameters";
     }
     return requestStr;
   }
- /*private String getMethodParam(ProceedingJoinPoint point, Class[] excludeInParam) {
-    Object[] methodArgs = point.getArgs();
-    Parameter[] parameters = ((MethodSignature) point.getSignature()).getMethod().getParameters();
-    String requestStr;
-    try {
-
-//      requestStr = logParam(parameters, methodArgs, excludeInParam);
-      requestStr = logParam(methodArgs, excludeInParam);
-    } catch (Exception e) {
-      LOG.warn("failed to get parameters: {}", e);
-      requestStr = "failed to get parameters";
-    }
-    return requestStr;
-  }
-*/
 
   /**
    * 拼接入参
@@ -523,131 +507,6 @@ public class LogAOP implements ApplicationContextAware {
     }
     return buffer.toString();
   }
-
-  public static void main (String args[] ){
-    String[] includeInParam = new String[]{"arg0.a","arg1.a","arg0.3"};
-    Map<String, List<String>> collect = Arrays.stream(includeInParam)
-        .collect(Collectors.groupingBy(e -> {
-          String substring = e.substring(0,4);
-          return substring;
-        }));
-    List<String> a = collect.get("a");
-    a.forEach(aa->{
-      System.out.println();
-
-    });
-
-    System.out.println();
-  }
- /* private String logParam(Object[] paramsArgsValue, LogContext logContext) {
-    if (ArrayUtils.isEmpty(paramsArgsValue)) {
-      return "";
-    }
-    Class[] excludeInParam = logContext.getExcludeInParam();
-    String[] excludeValue = logContext.getExcludeValue();
-    if (ArrayUtils.isNotEmpty(excludeValue)) {
-      StringBuffer buffer = new StringBuffer();
-
-      Flag:
-      for (int i = 0; i < paramsArgsValue.length; i++) {
-        //参数名
-        String name = paramsArgsName[i].getName();
-        //参数值
-        Object value = paramsArgsValue[i];
-        //
-        // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不进行拼接
-        // ------------------------------------------------------------------------------
-        for (Class exclude : excludeInParam) {
-          filter.addFilter(exclude, "userCode");
-          if (exclude.equals(value.getClass())) {
-            continue Flag;
-          }
-        }
-        buffer.append(name + "=");
-        if (value instanceof String) {
-          buffer.append(value + ",");
-        } else {
-//        filter.addFilter().addExcludes("user");
-//        filter.addFilter("userCode");
-
-          FastJsonConfig jsonConfig = new FastJsonConfig();
-          buffer.append(JSON.toJSONString(value, simplePropertyPreFilters) + ",");
-        }
-      }
-    }
-    if (ArrayUtils.isNotEmpty(excludeInParam)) {
-      List temp = new ArrayList(paramsArgsValue.length);
-      for (Object value : paramsArgsValue) {
-        //.getClass().getSimpleName()
-        // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不放入temp集合
-        // ------------------------------------------------------------------------------
-        for (Class exclude : excludeInParam) {
-          if (!exclude.equals(value.getClass())) {
-            temp.add(value);
-          }
-        }
-      }
-      if (ArrayUtils.isNotEmpty(excludeValue)) {
-        PropertyPreFilters filter = new PropertyPreFilters();
-        filter.addFilter(excludeValue);
-        List<MySimplePropertyPreFilter> filters = filter.getFilters();
-        SimplePropertyPreFilter[] simplePropertyPreFilters = new SimplePropertyPreFilter[filters
-            .size()];
-
-        for (int i1 = 0; i1 < filters.size(); i1++) {
-          simplePropertyPreFilters[i1] = filters.get(i1);
-        }
-        return JSONArray.toJSONString(temp, simplePropertyPreFilters);
-      }
-      return JSONArray.toJSONString(temp);
-    } else {
-      if (ArrayUtils.isNotEmpty(excludeValue)) {
-        PropertyPreFilters filter = new PropertyPreFilters();
-        filter.addFilter(excludeValue);
-        List<MySimplePropertyPreFilter> filters = filter.getFilters();
-        SimplePropertyPreFilter[] simplePropertyPreFilters = new SimplePropertyPreFilter[filters
-            .size()];
-
-        for (int i1 = 0; i1 < filters.size(); i1++) {
-          simplePropertyPreFilters[i1] = filters.get(i1);
-        }
-        return JSONArray.toJSONString(paramsArgsValue, simplePropertyPreFilters);
-      }
-    }
-    return JSONArray.toJSONString(paramsArgsValue);
-*//*
-    StringBuffer buffer = new StringBuffer();
-
-    Flag:
-    for (int i = 0; i < paramsArgsValue.length; i++) {
-      //参数名
-      String name = paramsArgsName[i].getName();
-      //参数值
-      Object value = paramsArgsValue[i];
-      //
-      // 判断当前参数值是否属于excludeInParam，如果属于，则跳过不进行拼接
-      // ------------------------------------------------------------------------------
-      for (Class exclude : excludeInParam) {
-        filter.addFilter(exclude, "userCode");
-        if (exclude.equals(value.getClass())) {
-          continue Flag;
-        }
-      }
-      buffer.append(name + "=");
-      if (value instanceof String) {
-        buffer.append(value + ",");
-      } else {
-//        filter.addFilter().addExcludes("user");
-//        filter.addFilter("userCode");
-
-        FastJsonConfig jsonConfig = new FastJsonConfig();
-        buffer.append(JSON.toJSONString(value, simplePropertyPreFilters) + ",");
-      }
-    }
-    return buffer.toString();*//*
-  }
-*/
-
   @Override
   public void setApplicationContext(ApplicationContext applicationContext) {
     try {

@@ -91,15 +91,10 @@ public class ProfilerAOP {
       if (StringUtils.isNotBlank(name)) {
         profilerName = name;
       }
-
-//      logContext.setProfilerName(profilerName);
-
       Profiler parent = ltc.getPrevProfiler();
-//      parent.registerWith(profilerRegistry);
       parent.setLogger(logger);
       Profiler childProfiler = parent.startNested(profilerName);
       // 获取注册的分析器
-//      Profiler childProfiler = profilerRegistry.get(profilerName);
       childProfiler.start(profilerName);
       //===============================================================================
       //  将childProfiler放入log上下文中

@@ -1,20 +1,14 @@
 package com.enhance.util;
 
-import com.enhance.annotations.Log;
 import com.enhance.aspect.LogThreadContext;
 import com.enhance.aspect.LogThreadContext.LogContext;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Stack;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.slf4j.profiler.Profiler;
-import org.slf4j.profiler.ProfilerRegistry;
-import org.slf4j.profiler.TimeInstrument;
-import org.springframework.util.Assert;
 
 
 /**
@@ -25,16 +19,9 @@ import org.springframework.util.Assert;
 @Slf4j
 public class LogUtil {
 
-  public final static ThreadLocal<Log> LOG_UTIL = new ThreadLocal<Log>();
-  public final static ThreadLocal<Stack<String[]>> LOG_UTIL_CODES = new ThreadLocal<>();
-  public final static ThreadLocal<Profiler> LOG_PROFILERS = new ThreadLocal<Profiler>();
-
   private final static String CODE = "code";
   private final static String OLD_CODE = "oldCode";
   private final static String MSG_FORMAT = "(%s:%s)";
-
-
-
 
   /**
    * 开始方法耗时统计,需要配合注解@Log使用
@@ -48,12 +35,8 @@ public class LogUtil {
       LogContext logContext = ltc.getCurrentLogContext();
       String profilerName = logContext.getProfilerName();
       Profiler parent = ltc.get(profilerName);
-//      ProfilerRegistry profilerRegistry = ProfilerRegistry.getThreadContextInstance();
-//      parent.registerWith(profilerRegistry);
-//      parent.setLogger(logger);
       Profiler childProfiler = parent.startNested(name);
       // 获取注册的分析器
-//      Profiler childProfiler = profilerRegistry.get(name);
       String names = new StringBuilder(profilerName).append("-->").append(name).toString();
       childProfiler.start(names);
       ltc.setInstantProfiler(childProfiler);
@@ -62,20 +45,6 @@ public class LogUtil {
       log.warn("method startProfiler(name) 需要配合注解@LogProfiler或者@EnableProfiler使用,并且开启enableProfiler");
     }
     return ltc;
-  }
-
-  /**
-   * 打印方法耗时统计
-   *
-   * @return void
-   * @author gongliangjun 2020-06-01 11:32 AM
-   */
-  public static void printProfiler() {
-    Profiler profiler = LOG_PROFILERS.get();
-    if (profiler != null) {
-      TimeInstrument stop = profiler.stop();
-      stop.print();
-    }
   }
 
   /**
