@@ -32,3 +32,4 @@ gui-extension/
 /redis-plugin/mvnw
 /redis-plugin/redis-plugin.iml
 workspace
+src/main/resources/images/
