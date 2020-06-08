@@ -57,7 +57,6 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(1)  //order最小最先执行  保证ProfilerAOP 后于LogAop执行
 public class LogAOP implements ApplicationContextAware {
-
   /**
    * logger
    */
@@ -66,7 +65,6 @@ public class LogAOP implements ApplicationContextAware {
   private static final String USER = "user";
   private static final String CODE = "code";
   private static final String DOT_NOTATION = ".";
-  private final static String PROFILER_NAME = "profilerName";
 
   @Autowired
   private List<FilterResultService> filterResultServices;
@@ -79,7 +77,6 @@ public class LogAOP implements ApplicationContextAware {
   @SneakyThrows
   @Around("logPoint()")
   public Object handlerLogMethod(ProceedingJoinPoint joinPoint) {
-
     //
     //  得到方法上的注解
     // ------------------------------------------------------------------------------
@@ -186,8 +183,6 @@ public class LogAOP implements ApplicationContextAware {
     } catch (Exception e) {
       LOG.warn("handleMDCValue error: {} ", e);
     }
-
-
   }
 
   /**
@@ -327,7 +322,6 @@ public class LogAOP implements ApplicationContextAware {
     }
     return logger;
   }
-
   private void saveLogInfo2MDC(ProceedingJoinPoint pjp, LogThreadContext ltc) {
     //===============================================================================
     //  保存用户信息到MDC
@@ -350,7 +344,6 @@ public class LogAOP implements ApplicationContextAware {
       ltc.putCallStack(new HashMap(1));
     }
   }
-
   /**
    * 获取注解Log的值,构造成json，供sf4j使用
    *

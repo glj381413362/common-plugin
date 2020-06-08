@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 /**
  * description
  *
+ *
  * @author 龚梁钧 2019/06/27 18:27
  */
 @Aspect
@@ -145,7 +146,6 @@ public class ProfilerAOP {
       return result;
     }
   }
-
   private void initLogContext(Method method, LogThreadContext ltc) {
     EnableProfiler enableProfiler = method.getAnnotation(EnableProfiler.class);
     Log logAnnotation = method.getAnnotation(Log.class);

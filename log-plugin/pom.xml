@@ -15,26 +15,6 @@
     </properties>
 
     <distributionManagement>
-<!--
-        <repository>
-            <id>hmall-plugins-mixed</id>
-            <name>hmall plugins mixed Repository</name>
-            <url>http://test.sgp.shou-xuan.com:30107/repository/hmall-plugins-mixed</url>
-        </repository>
-        <snapshotRepository>
-            <id>hmall-plugins-mixed</id>
-            <name>hmall plugins mixed Repository</name>
-            <url>http://test.sgp.shou-xuan.com:30107/repository/hmall-plugins-mixed</url>
-        </snapshotRepository>-->
-        <!--黄河-->
-        <repository>
-            <id>rdc-releases</id>
-            <url>https://repo.rdc.aliyun.com/repository/113211-release-NElI5e/</url>
-        </repository>
-        <snapshotRepository>
-            <id>rdc-snapshots</id>
-            <url>https://repo.rdc.aliyun.com/repository/113211-snapshot-KMf78c/</url>
-        </snapshotRepository>
     </distributionManagement>
 
     <dependencies>
